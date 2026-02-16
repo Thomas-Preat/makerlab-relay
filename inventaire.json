@@ -1,0 +1,14 @@
+[
+  {
+    "reference": "SE140",
+    "nom": "TestServo",
+    "image": "default.png",
+    "disponible": true
+  },
+  {
+    "reference": "SE550",
+    "nom": "Test2",
+    "image": "default.png",
+    "disponible": true
+  }
+]
