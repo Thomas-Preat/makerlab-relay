@@ -1,36 +1,16 @@
-import { useState } from "react";
-import { useSignInEmailPassword } from "@nhost/react";
+import { useRole } from "../context/RoleContext";
 
 function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const { signInEmailPassword, isLoading, isSuccess, isError, error } = useSignInEmailPassword();
+  const { setRole } = useRole();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    signInEmailPassword(email, password);
-  };
+  const handleStudent = () => setRole("student");
+  const handleTeacher = () => setRole("teacher");
 
   return (
     <div className="container">
-      <h1>Login</h1>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        /><br/>
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        /><br/>
-        <button type="submit" disabled={isLoading}>Login</button>
-      </form>
-      {isError && <p style={{color:"red"}}>{error.message}</p>}
-      {isSuccess && <p style={{color:"green"}}>Logged in!</p>}
+      <h1>Login (simulé)</h1>
+      <button onClick={handleStudent}>Se connecter comme élève</button>
+      <button onClick={handleTeacher}>Se connecter comme professeur</button>
     </div>
   );
 }
