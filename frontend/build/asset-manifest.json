@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/makerlab-relay/static/css/main.9451f8e6.css",
+    "main.js": "/makerlab-relay/static/js/main.9a2a2f9e.js",
+    "index.html": "/makerlab-relay/index.html",
+    "main.9451f8e6.css.map": "/makerlab-relay/static/css/main.9451f8e6.css.map",
+    "main.9a2a2f9e.js.map": "/makerlab-relay/static/js/main.9a2a2f9e.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.9451f8e6.css",
+    "static/js/main.9a2a2f9e.js"
+  ]
+}
