@@ -11,7 +11,8 @@ function AppRouter() {
       <Route path="/" element={<Dashboard />} />
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/documentation" element={<DocLayout />}>
-        <Route path=":slug" element={<Documentation />} />
+        {/* Page dynamique : category = dossier, slug = élément */}
+        <Route path=":category/:slug" element={<Documentation />} />
       </Route>
     </Routes>
   );

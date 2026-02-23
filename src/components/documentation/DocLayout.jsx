@@ -4,14 +4,9 @@ import { Outlet } from "react-router-dom";
 function DocLayout() {
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
-      <DocSidebar />
-      <div style={{
-        flex: 1,
-        padding: "2rem",
-        maxWidth: "1200px",
-        margin: "0 auto"
-      }}>
-        <Outlet />
+      <DocSidebar /> {/* ta sidebar fixe avec dossiers et sous-éléments */}
+      <div style={{ flex: 1, padding: "2rem", maxWidth: "900px", margin: "0 auto" }}>
+        <Outlet /> {/* ici s’affiche la page Documentation dynamique */}
       </div>
     </div>
   );
