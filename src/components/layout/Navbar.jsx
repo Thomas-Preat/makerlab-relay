@@ -1,18 +1,17 @@
 import { Link } from "react-router-dom";
-import { useRole } from "../../context/RoleContext";
 
 function Navbar() {
-  const { role, setRole } = useRole();
-  const isTeacher = role === "teacher";
-
   return (
-    <nav>
-      <Link to="/">Dashboard</Link>
-      <Link to="/inventory">Inventaire</Link>
-      {isTeacher && <Link to="/admin">Admin</Link>}
-      <button onClick={() => setRole(role === "teacher" ? "student" : "teacher")}>
-        Switch Role (actuel: {role})
-      </button>
+    <nav style={{ padding: "1rem", background: "#222", color: "white" }}>
+      <Link to="/" style={{ marginRight: "1rem", color: "white" }}>
+        Dashboard
+      </Link>
+      <Link to="/inventory" style={{ marginRight: "1rem", color: "white" }}>
+        Inventaire
+      </Link>
+      <Link to="/orders" style={{ color: "white" }}>
+        Commandes
+      </Link>
     </nav>
   );
 }
