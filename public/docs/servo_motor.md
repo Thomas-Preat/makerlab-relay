@@ -68,7 +68,7 @@ for angle in [-90, -45, 0, 45, 90]:
     print(f"Angle actuel: {servo.get_angle()}°")
     time.sleep(1)
 
-# Test du balayage
+# Test balayage
 print("Test du balayage")
 servo.sweep(start=-90, end=90, step=10, delay=0.1)
 
