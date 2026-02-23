@@ -12,6 +12,9 @@ function Navbar() {
       <Link to="/orders" style={{ color: "white" }}>
         Commandes
       </Link>
+      <Link to="/documentation" style={{ marginLeft: "1rem", color: "white" }}>
+        Documentation
+      </Link>
     </nav>
   );
 }

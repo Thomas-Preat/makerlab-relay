@@ -1,0 +1,81 @@
+.doc-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  line-height: 1.7;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #d7d7d7;
+}
+
+/* Titres */
+.doc-content h1 {
+  font-size: 2.2rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+.doc-content h2 {
+  margin-top: 2.5rem;
+  font-size: 1.6rem;
+  border-left: 4px solid #4ea8de;
+  padding-left: 0.6rem;
+}
+
+.doc-content h3 {
+  margin-top: 1.8rem;
+  font-size: 1.2rem;
+}
+
+/* Paragraphes */
+.doc-content p {
+  margin: 1rem 0;
+}
+
+/* Listes */
+.doc-content ul {
+  padding-left: 1.5rem;
+}
+
+/* Tableaux */
+.doc-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+.doc-content th,
+.doc-content td {
+  border: 1px solid #bb83ef;
+  padding: 0.6rem;
+}
+
+.doc-content th {
+  background-color: #bb83ef;
+  color: #3d284c;
+  text-align: left;
+}
+
+/* Code inline */
+.doc-content code {
+  background: #f3f3f3;
+  color: #0d1117;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* Bloc code */
+.doc-content pre {
+  background: #0d1117;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.doc-content blockquote {
+  border-left: 4px solid #e6d5e7;
+  background: #bb83ef;
+  color: #4c375c;
+  padding: 0.8rem 1rem;
+  margin: 1rem 0;
+}
