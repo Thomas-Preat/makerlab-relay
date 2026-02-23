@@ -1,0 +1,1 @@
+Aucune librairie spécifique pour cet accéléromètre analogique.

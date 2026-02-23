@@ -1,6 +1,6 @@
-import { createClient } from "../../node_modules/@nhost/nhost-js/dist/src";
+import { NhostClient } from "@nhost/nhost-js";
 
-export const nhost = createClient({
-  subdomain: "dixqumruorjuqiurcfpz",
-  region: "eu-central-1"
+export const nhost = new NhostClient({
+  subdomain: import.meta.env.VITE_NHOST_SUBDOMAIN,
+  region: import.meta.env.VITE_NHOST_REGION
 });

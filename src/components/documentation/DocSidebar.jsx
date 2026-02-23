@@ -5,16 +5,22 @@ const docs = [
   {
     title: "Accéléromètre",
     children: [
-      { title: "ACL", slug: "acl" },
+      { title: "ACL", slug: "accelerometre/ACL" },
       { title: "ACL2", slug: "accelerometre/ACL2" },
-      { title: "ACL Maison", slug: "acl-maison" }
+      { title: "ACL Maison", slug: "accelerometre/ACL-Maison" }
     ]
   },
   {
-    title: "Microcontroleurs",
+    title: "Affichage",
     children: [
-      { title: "Arduino Uno", slug: "arduino-uno" },
-      { title: "Raspberry Pi Pico", slug: "pico" }
+      { title: "LCD PC1602F", slug: "affichage/LCD-PC1602F" },
+      { title: "LCD Pmod", slug: "affichage/LCD-Pmod" }
+    ]
+  },
+  {
+    title: "Input Devices",
+    children: [
+      { title: "Clavier 16 boutons", slug: "input-devices/clavier-16-boutons" }
     ]
   }
 ];
