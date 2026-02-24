@@ -3,6 +3,7 @@ import Dashboard from "../pages/Dashboard";
 import Inventory from "../pages/Inventory";
 import DocLayout from "../components/documentation/DocLayout";
 import Documentation from "../pages/Documentation";
+import Login from "../pages/Login";
 
 // Composants récupérés depuis Nhost
 import { useEffect, useState } from "react";
@@ -33,6 +34,7 @@ function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<Dashboard />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/inventory" element={<Inventory />} />
 
       <Route path="/documentation" element={<DocLayout components={components} />}>

@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { nhost } from "../lib/nhost";
 import Tabs from "../components/documentation/Tabs"; // shared component
+import { useRole } from "../context/RoleContext";
 
 export default function Documentation() {
   const { slug } = useParams(); // pour la route dynamique
+  const { role } = useRole();
   const [components, setComponents] = useState([]);
   const [selectedComponentId, setSelectedComponentId] = useState(null);
   const [tabsContent, setTabsContent] = useState({
@@ -111,22 +113,24 @@ export default function Documentation() {
     const dbType = reverseKeyMap[key] || key.toLowerCase();
 
     try {
-      // vérifier si une entrée existe déjà
-      const q = `query GetDoc($component_id: uuid!, $type: String!) {
-        documentation(where: {component_id: {_eq: $component_id}, type: {_eq: $type}}) {
+      // vérifier si une entrée existe déjà (on prend en compte la version avec accent)
+      const typesToCheck = dbType === "schema" ? ["schema", "schéma"] : [dbType];
+      const q = `query GetDoc($component_id: uuid!, $types: [String!]!) {
+        documentation(where: {component_id: {_eq: $component_id}, type: {_in: $types}}) {
           id
+          type
         }
       }`;
 
       const res = await nhost.graphql.request({
         query: q,
-        variables: { component_id: selectedComponentId, type: dbType },
+        variables: { component_id: selectedComponentId, types: typesToCheck },
       });
 
       const docs = res.body.data.documentation || [];
 
       if (docs.length) {
-        // mise à jour
+        // mise à jour du premier document trouvé (inutile de multiplier les enregistrements)
         const docId = docs[0].id;
         const m = `mutation UpdateDoc($id: uuid!, $content: String!) {
           update_documentation_by_pk(pk_columns: {id: $id}, _set: {content: $content}) { id }
@@ -156,10 +160,12 @@ export default function Documentation() {
         <Tabs
           contentObj={tabsContent}
           onSave={(key, newContent) => {
+            // update UI state immediately
             setTabsContent((prev) => ({ ...prev, [key]: newContent }));
-            // TODO: persister côté serveur si nécessaire
-            console.log("Saved tab", key);
+            // persist change on the database
+            handleSave(key, newContent);
           }}
+          canEdit={role === "teacher" || role === "admin"} // teachers and admins may edit
         />
       )}
     </div>

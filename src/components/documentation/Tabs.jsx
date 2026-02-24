@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm"; // tables, strikethrough, task lists, etc.
 
-function Tabs({ contentObj = {}, onSave }) {
+function Tabs({ contentObj = {}, onSave, canEdit = false }) {
   const tabs = Object.keys(contentObj || {}); // ensure we have an array
   const [activeTab, setActiveTab] = useState(tabs[0] || "");
   const [editing, setEditing] = useState(false);
@@ -52,15 +53,17 @@ function Tabs({ contentObj = {}, onSave }) {
           </button>
         ))}
 
+        {canEdit && (
         <button
           onClick={() => setEditing((s) => !s)}
           style={{ marginLeft: "auto", padding: "0.4rem 0.8rem", background: "#222", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
         >
           {editing ? "Fermer" : "Éditer"}
         </button>
+      )}
       </div>
 
-      {editing ? (
+      {editing && canEdit ? (
         <div style={{ marginBottom: "1rem" }}>
           <textarea
             value={editText}
@@ -77,7 +80,7 @@ function Tabs({ contentObj = {}, onSave }) {
 
       {/* Contenu Markdown actif */}
       <div style={{ border: "1px solid #ddd", padding: "1rem", borderRadius: "4px" }}>
-        <ReactMarkdown>{contentObj[activeTab]}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentObj[activeTab]}</ReactMarkdown>
       </div>
     </div>
   );
