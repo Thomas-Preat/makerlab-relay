@@ -1,8 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useRole } from "../../context/RoleContext";
 
 function Navbar() {
-  const { role, setRole } = useRole();
+  const { role, user, logout } = useRole();
+  const navigate = useNavigate();
 
   return (
     <nav style={{ padding: "1rem", background: "#222", color: "white", display: "flex", alignItems: "center" }}>
@@ -22,19 +23,22 @@ function Navbar() {
         Test Nhost
       </Link>
       <div style={{ marginLeft: "auto" }}>
-        {role !== "teacher" ? (
+        {user ? (
           <button
-            onClick={() => setRole("teacher")}
-            style={{ background: "#4ea8de", border: "none", padding: "0.4rem 0.8rem", borderRadius: 4, cursor: "pointer", color: "white" }}
+            onClick={async () => {
+              await logout();
+              navigate("/");
+            }}
+            style={{ background: "#e04e4e", border: "none", padding: "0.4rem 0.8rem", borderRadius: 4, cursor: "pointer", color: "white" }}
           >
-            Login prof
+            Déconnexion
           </button>
         ) : (
           <button
-            onClick={() => setRole("student")}
-            style={{ background: "#e04e4e", border: "none", padding: "0.4rem 0.8rem", borderRadius: 4, cursor: "pointer", color: "white" }}
+            onClick={() => navigate("/login")}
+            style={{ background: "#4ea8de", border: "none", padding: "0.4rem 0.8rem", borderRadius: 4, cursor: "pointer", color: "white" }}
           >
-            Logout
+            Login prof
           </button>
         )}
       </div>

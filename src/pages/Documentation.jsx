@@ -165,7 +165,7 @@ export default function Documentation() {
             // persist change on the database
             handleSave(key, newContent);
           }}
-          canEdit={role === "teacher"} // only teachers may edit
+          canEdit={role === "teacher" || role === "admin"} // teachers and admins may edit
         />
       )}
     </div>
