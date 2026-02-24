@@ -8,7 +8,7 @@ import { useRole } from "../context/RoleContext";
 export default function Documentation() {
   const { slug } = useParams(); // pour la route dynamique
   const { role } = useRole();
-  const [components, setComponents] = useState([]);
+  // component list isn't stored in state; we only use it inside the effect
   const [selectedComponentId, setSelectedComponentId] = useState(null);
   const [tabsContent, setTabsContent] = useState({
     Explication: "",
@@ -33,7 +33,7 @@ export default function Documentation() {
           `,
         });
         const comps = res.body.data.components || [];
-        setComponents(comps);
+        // we don't keep the list in state at the moment, only use it locally
 
         // Sélection par slug de l'URL
         if (slug) {
