@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { nhost } from "../lib/nhost";
 import Tabs from "../components/documentation/Tabs"; // shared component
-// role management removed (no authentication currently)
+import { useRole } from "../context/RoleContext";
 
 export default function Documentation() {
   const { slug } = useParams(); // pour la route dynamique
+  const { role } = useRole();
   const [components, setComponents] = useState([]);
   const [selectedComponentId, setSelectedComponentId] = useState(null);
   const [tabsContent, setTabsContent] = useState({
@@ -164,7 +165,7 @@ export default function Documentation() {
             // persist change on the database
             handleSave(key, newContent);
           }}
-          // editing always allowed (no roles)
+          canEdit={role === "teacher"} // only teachers may edit
         />
       )}
     </div>
