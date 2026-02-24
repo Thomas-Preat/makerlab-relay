@@ -1,10 +1,9 @@
 import { useState } from "react";
 import mockInventory from "../data/mockInventory";
 import InventoryItem from "../components/inventory/InventoryItem";
-import { useRole } from "../context/RoleContext";
 
 function Inventory() {
-  const { role } = useRole();
+  // role not used
   const [items, setItems] = useState(mockInventory);
 
   const handleBorrow = (id) => {
@@ -25,7 +24,7 @@ function Inventory() {
         <InventoryItem
           key={item.id}
           item={item}
-          role={role}
+          /* no role prop */
           onBorrow={handleBorrow}
         />
       ))}

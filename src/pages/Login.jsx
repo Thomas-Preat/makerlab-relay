@@ -1,10 +1,7 @@
-import { useRole } from "../context/RoleContext";
+// Login page without role context (simulated). Replace with real auth later.
 
 function Login() {
-  const { setRole } = useRole();
-
-  const handleStudent = () => setRole("student");
-  const handleTeacher = () => setRole("teacher");
+  // no role state
 
   return (
     <div className="container">
