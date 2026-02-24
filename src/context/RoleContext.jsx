@@ -18,31 +18,35 @@ export const RoleProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState("student");
 
-  // derive a role based on JWT claims if present, otherwise fall back to
-  // the static email lists. when nhost is configured to add
-  // `x-hasura-default-role` the token will contain it.
-  const updateRole = async (userData) => {
+  // decide role using metadata stored on the user (easiest with the
+  // Hasura claim injected by nhost). if that's missing we fall back to the
+  // hard‑coded email lists.
+  const updateRole = (userData) => {
     if (!userData) {
       setRole("student");
       return;
     }
 
-    try {
-      const token = await nhost.auth.getJWTToken();
-      if (token) {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        const claims = payload["https://hasura.io/jwt/claims"] || {};
-        const defaultRole = claims["x-hasura-default-role"];
-        if (defaultRole) {
-          setRole(defaultRole);
-          return; // we obtained the role from the token
-        }
-      }
-    } catch (e) {
-      console.warn("unable to derive role from JWT", e);
+    // log the object during development so we see what's available
+    console.debug("user object when updating role", userData);
+
+    // nhost.auth.getUser() returns an object with `body` carrying the fields
+    // including `defaultRole`. try to read that first.
+    const defaultRoleFromBody = userData.body?.defaultRole;
+    if (defaultRoleFromBody) {
+      setRole(defaultRoleFromBody);
+      return;
     }
 
-    // fallback to email lists if the token didn't contain a role
+    const claims =
+      userData.metadata?.["https://hasura.io/jwt/claims"] || {};
+    const defaultRole = claims["x-hasura-default-role"];
+    if (defaultRole) {
+      setRole(defaultRole);
+      return;
+    }
+
+    // if no claim, use email lists as a fallback
     if (ADMIN_EMAILS.includes(userData.email)) {
       setRole("admin");
     } else if (PROFESSOR_EMAILS.includes(userData.email)) {
@@ -58,7 +62,7 @@ export const RoleProvider = ({ children }) => {
       if (error) return error;
       const u = await nhost.auth.getUser();
       setUser(u);
-      await updateRole(u);
+      updateRole(u);
       return null;
     } catch (err) {
       // wrap any unexpected fetch/other errors into a usable object
@@ -84,9 +88,9 @@ export const RoleProvider = ({ children }) => {
     // perform initial fetch of user when component mounts
     nhost.auth
       .getUser()
-      .then(async (u) => {
+      .then((u) => {
         setUser(u);
-        await updateRole(u);
+        updateRole(u);
       })
       .catch((err) => {
         // ignore unauthorized errors (no one logged in yet)
