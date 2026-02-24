@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useRole } from "../../context/RoleContext";
 
 function Navbar() {
-  const { role, user, logout } = useRole();
+  const { user, logout } = useRole();
   const navigate = useNavigate();
 
   return (
