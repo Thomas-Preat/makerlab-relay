@@ -15,6 +15,9 @@ function Navbar() {
       <Link to="/documentation" style={{ marginLeft: "1rem", color: "white" }}>
         Documentation
       </Link>
+      <Link to="/testnhost" style={{ marginLeft: "1rem", color: "white" }}>
+        Test Nhost
+      </Link>
     </nav>
   );
 }

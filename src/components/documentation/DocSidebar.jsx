@@ -1,42 +1,35 @@
+// src/components/documentation/DocSidebar.jsx
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
-const docs = [
-  {
-    title: "Accéléromètre",
-    children: [
-      { title: "ACL", slug: "accelerometre/ACL" },
-      { title: "ACL2", slug: "accelerometre/ACL2" },
-      { title: "ACL Maison", slug: "accelerometre/ACL-Maison" }
-    ]
-  },
-  {
-    title: "Affichage",
-    children: [
-      { title: "LCD PC1602F", slug: "affichage/LCD-PC1602F" },
-      { title: "LCD Pmod", slug: "affichage/LCD-Pmod" }
-    ]
-  },
-  {
-    title: "Input Devices",
-    children: [
-      { title: "Clavier 16 boutons", slug: "input-devices/clavier-16-boutons" }
-    ]
-  }
-];
-
-function DocSidebar() {
+function DocSidebar({ components = [], selectedComponent, onSelect }) {
+  const [componentsByCategory, setComponentsByCategory] = useState({});
   const [openFolders, setOpenFolders] = useState({});
   const [isOpen, setIsOpen] = useState(false); // sidebar mobile
   const [isMobile, setIsMobile] = useState(false);
 
-  // Détecte la largeur de la fenêtre
+
+  // Détecter la largeur de la fenêtre
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
-    handleResize(); // vérifie au premier render
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Grouper les composants par catégorie
+  useEffect(() => {
+    if (!components || components.length === 0) return;
+
+    const grouped = components.reduce((acc, comp) => {
+      const cat = comp.category || "Autres";
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(comp);
+      return acc;
+    }, {});
+
+    setComponentsByCategory(grouped);
+  }, [components]);
 
   const toggleFolder = (title) => {
     setOpenFolders({ ...openFolders, [title]: !openFolders[title] });
@@ -68,11 +61,7 @@ function DocSidebar() {
       {/* Sidebar */}
       <div
         style={{
-          transform: isMobile
-            ? isOpen
-              ? "translateX(0)"
-              : "translateX(-280px)"
-            : "translateX(0)",
+          transform: isMobile ? (isOpen ? "translateX(0)" : "translateX(-280px)") : "translateX(0)",
           transition: "transform 0.3s ease",
           position: isMobile ? "fixed" : "sticky",
           top: 0,
@@ -86,28 +75,38 @@ function DocSidebar() {
           overflowY: "auto"
         }}
       >
-        {docs.map((folder) => (
-          <div key={folder.title} style={{ marginBottom: "1rem" }}>
+        {Object.entries(componentsByCategory).map(([category, comps]) => (
+          <div key={category} style={{ marginBottom: "1rem" }}>
             <div
-              onClick={() => toggleFolder(folder.title)}
+              onClick={() => toggleFolder(category)}
               style={{ cursor: "pointer", fontWeight: "bold" }}
             >
-              {folder.title} {openFolders[folder.title] ? "▼" : "▶"}
+              {category} {openFolders[category] ? "▼" : "▶"}
             </div>
 
-            {openFolders[folder.title] && (
+            {openFolders[category] && (
               <div style={{ marginLeft: "1rem", marginTop: "0.5rem" }}>
-                {folder.children.map((doc) => (
-                  <div key={doc.slug} style={{ marginBottom: "0.3rem" }}>
-                    <Link
-                      to={`/documentation/${doc.slug}`}
-                      style={{ color: "white", textDecoration: "none" }}
-                      onClick={() => isMobile && setIsOpen(false)}
-                    >
-                      {doc.title}
-                    </Link>
-                  </div>
-                ))}
+                {comps.map((comp) => {
+                  const isActive = comp.id === selectedComponent;
+                  return (
+                    <div key={comp.id} style={{ marginBottom: "0.3rem" }}>
+                      <Link
+                        to={`/documentation/${comp.category}/${comp.slug}`}
+                        style={{
+                          color: isActive ? "#4ea8de" : "white",
+                          textDecoration: "none",
+                          fontWeight: isActive ? "bold" : "normal"
+                        }}
+                        onClick={() => {
+                          if (onSelect) onSelect(comp.id);
+                          if (isMobile) setIsOpen(false);
+                        }}
+                      >
+                        {comp.name}
+                      </Link>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
