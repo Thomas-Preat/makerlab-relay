@@ -36,6 +36,33 @@ function Inventory() {
     }
   };
 
+  // teachers can modify an entry
+  const handleUpdate = async (updated) => {
+    // optimistic UI update
+    setItems(items.map(i => (i.id === updated.id ? { ...i, ...updated } : i)));
+
+    try {
+      const { id, name, category, quantity, location } = updated;
+      await nhost.graphql.request({
+        query: `
+          mutation UpdateComponent($id: uuid!, $changes: components_set_input!) {
+            update_components_by_pk(pk_columns: {id: $id}, _set: $changes) {
+              id
+              name
+              category
+              quantity
+              location
+            }
+          }
+        `,
+        variables: { id, changes: { name, category, quantity, location } }
+      });
+    } catch (err) {
+      console.error("Erreur lors de la modification d'un composant :", err);
+      // optionally re-fetch or rollback
+    }
+  };
+
   // fetch inventory items from Hasura on mount
   useEffect(() => {
     async function fetchItems() {
@@ -73,16 +100,15 @@ function Inventory() {
   });
 
   return (
-    <div style={{ padding: "2rem" }}>
+    <div className="inventory-page">
       <h1>Inventaire</h1>
 
-      <div style={{ marginBottom: "1rem" }}>
+      <div className="inventory-search">
         <input
           type="text"
           placeholder="Rechercher par nom ou catégorie..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ padding: "0.5rem", width: "100%", maxWidth: "400px" }}
         />
       </div>
 
@@ -95,6 +121,7 @@ function Inventory() {
             item={item}
             role={role}
             onBorrow={handleBorrow}
+            onUpdate={handleUpdate}
           />
         ))
       )}
