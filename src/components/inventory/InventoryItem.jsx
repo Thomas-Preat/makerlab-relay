@@ -41,18 +41,18 @@ function InventoryItem({ item, role, onBorrow, onUpdate }) {
   return (
     <div className="inventory-item">
       {editing ? (
-        <div>
-          <div>
+        <div className="inventory-edit-form">
+          <div className="inventory-form-row">
             <label>
               Nom: <input value={form.name} onChange={handleChange("name")} />
             </label>
           </div>
-          <div>
+          <div className="inventory-form-row">
             <label>
               Catégorie: <input value={form.category} onChange={handleChange("category")} />
             </label>
           </div>
-          <div>
+          <div className="inventory-form-row inventory-form-row-split">
             <label>
               Quantité: 
               <input
@@ -62,7 +62,7 @@ function InventoryItem({ item, role, onBorrow, onUpdate }) {
                 onChange={handleChange("quantity")}
               />
             </label>
-            <label style={{ marginLeft: "1rem" }}>
+            <label className="inventory-inline-checkbox">
               <input
                 type="checkbox"
                 checked={unlimited}
@@ -76,31 +76,50 @@ function InventoryItem({ item, role, onBorrow, onUpdate }) {
               Quantité illimitée
             </label>
           </div>
-          <div>
+          <div className="inventory-form-row">
             <label>
               Emplacement: <input value={form.location} onChange={handleChange("location")} />
             </label>
           </div>
-          <button onClick={save}>Enregistrer</button>{" "}
-          <button onClick={cancel}>Annuler</button>
+          <div className="inventory-form-row">
+            <label>
+              Image (URL) : <input value={form.image || ""} onChange={handleChange("image")} placeholder="https://..." />
+            </label>
+          </div>
+          <div className="inventory-form-actions">
+            <button onClick={save}>Enregistrer</button>
+            <button className="secondary" onClick={cancel}>Annuler</button>
+          </div>
         </div>
       ) : (
-        <>
-          <h3>{item.name}</h3>
-          <p>Catégorie : {item.category}</p>
-          <p>Disponible : {item.quantity == null ? "oui" : item.quantity}</p>
-          <p>Emplacement : {item.location}</p>
-
-          {role === "student" && item.quantity > 0 && (
-            <button onClick={() => onBorrow(item.id)}>
-              Demander
-            </button>
-          )}
-
+        <div className="inventory-item-content">
           {role === "teacher" && (
-            <button onClick={() => setEditing(true)}>Modifier</button>
+            <button className="inventory-item-edit-btn" onClick={() => setEditing(true)}>Modifier</button>
           )}
-        </>
+
+          {item.image && (
+            <div className="inventory-item-image">
+              <img
+                src={item.image}
+                alt={item.name}
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
+            </div>
+          )}
+
+          <div className="inventory-item-details">
+            <h3>{item.name}</h3>
+            <p>Catégorie : {item.category}</p>
+            <p>Disponible : {item.quantity == null ? "oui" : item.quantity}</p>
+            <p>Emplacement : {item.location}</p>
+
+            {role === "student" && item.quantity > 0 && (
+              <button onClick={() => onBorrow(item.id)}>
+                Demander
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -8,7 +8,7 @@ function Inventory() {
   const [items, setItems] = useState([]);  // will be filled from the database
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-  const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, location: "" });
+  const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, location: "", image: "" });
   const [newUnlimited, setNewUnlimited] = useState(false);
 
   const handleBorrow = async (id) => {
@@ -46,6 +46,7 @@ function Inventory() {
 
     try {
       const { id, name, category, quantity, location } = updated;
+      const { image } = updated;
       await nhost.graphql.request({
         query: `
           mutation UpdateComponent($id: uuid!, $changes: components_set_input!) {
@@ -55,10 +56,11 @@ function Inventory() {
               category
               quantity
               location
+              image
             }
           }
         `,
-        variables: { id, changes: { name, category, quantity, location } }
+        variables: { id, changes: { name, category, quantity, location, image } }
       });
     } catch (err) {
       console.error("Erreur lors de la modification d'un composant :", err);
@@ -80,6 +82,7 @@ function Inventory() {
                 category
                 quantity
                 location
+                image
               }
             }
           `
@@ -129,6 +132,7 @@ function Inventory() {
               quantity
               location
               slug
+              image
             }
           }
         `,
@@ -137,7 +141,7 @@ function Inventory() {
       const added = res.body.data.insert_components_one;
       if (added) {
         setItems((prev) => [...prev, added]);
-        setNewItem({ name: "", category: "", quantity: 0, location: "" });
+        setNewItem({ name: "", category: "", quantity: 0, location: "", image: "" });
         setShowAdd(false);
       }
     } catch (err) {
@@ -160,7 +164,7 @@ function Inventory() {
       <h1>Inventaire</h1>
 
       {role !== "student" && (
-        <div style={{ marginBottom: "1rem" }}>
+        <div className="inventory-top-actions">
           <button onClick={() => setShowAdd((s) => !s)}>
             {showAdd ? "Annuler" : "Ajouter un élément"}
           </button>
@@ -168,19 +172,19 @@ function Inventory() {
       )}
 
       {showAdd && (
-        <div style={{ marginBottom: "1rem", border: "1px solid #ccc", padding: "1rem", borderRadius: "4px" }}>
+        <div className="inventory-add-panel">
           <h3>Nouveau composant</h3>
-          <div>
+          <div className="inventory-form-row">
             <label>
               Nom: <input value={newItem.name} onChange={e => setNewItem(prev => ({ ...prev, name: e.target.value }))} />
             </label>
           </div>
-          <div>
+          <div className="inventory-form-row">
             <label>
               Catégorie: <input value={newItem.category} onChange={e => setNewItem(prev => ({ ...prev, category: e.target.value }))} />
             </label>
           </div>
-          <div>
+          <div className="inventory-form-row inventory-form-row-split">
             <label>
               Quantité: 
               <input
@@ -191,7 +195,7 @@ function Inventory() {
                 onChange={e => setNewItem(prev => ({ ...prev, quantity: e.target.value }))}
               />
             </label>
-            <label style={{ marginLeft: "1rem" }}>
+            <label className="inventory-inline-checkbox">
               <input
                 type="checkbox"
                 checked={newUnlimited}
@@ -203,12 +207,23 @@ function Inventory() {
               Quantité illimitée
             </label>
           </div>
-          <div>
+          <div className="inventory-form-row">
             <label>
               Emplacement: <input value={newItem.location} onChange={e => setNewItem(prev => ({ ...prev, location: e.target.value }))} />
             </label>
           </div>
-          <button onClick={handleAdd}>Enregistrer</button>
+          <div className="inventory-form-row">
+            <label>
+              Image (URL) : <input
+                value={newItem.image || ""}
+                placeholder="https://..."
+                onChange={e => setNewItem(prev => ({ ...prev, image: e.target.value }))}
+              />
+            </label>
+          </div>
+          <div className="inventory-form-actions">
+            <button onClick={handleAdd}>Enregistrer</button>
+          </div>
         </div>
       )}
 
