@@ -1,15 +1,19 @@
 import { useState, useEffect } from "react";
 
-function InventoryItem({ item, role, onBorrow, onUpdate }) {
+function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, categories = [] }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...item });
   const [unlimited, setUnlimited] = useState(item.quantity == null);
+  const [isCustomCategory, setIsCustomCategory] = useState(
+    Boolean(item.category) && !categories.includes(item.category)
+  );
 
   // keep form in sync with props when item changes
   useEffect(() => {
     setForm({ ...item });
     setUnlimited(item.quantity == null);
-  }, [item]);
+    setIsCustomCategory(Boolean(item.category) && !categories.includes(item.category));
+  }, [item, categories]);
 
   const handleChange = (field) => (e) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
@@ -49,9 +53,35 @@ function InventoryItem({ item, role, onBorrow, onUpdate }) {
           </div>
           <div className="inventory-form-row">
             <label>
-              Catégorie: <input value={form.category} onChange={handleChange("category")} />
+              Catégorie:
+              <select
+                value={isCustomCategory ? "__custom__" : (form.category || "")}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  if (selected === "__custom__") {
+                    setIsCustomCategory(true);
+                    setForm(prev => ({ ...prev, category: "" }));
+                    return;
+                  }
+                  setIsCustomCategory(false);
+                  setForm(prev => ({ ...prev, category: selected }));
+                }}
+              >
+                <option value="">Choisir une catégorie</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+                <option value="__custom__">Nouvelle catégorie...</option>
+              </select>
             </label>
           </div>
+          {isCustomCategory && (
+            <div className="inventory-form-row">
+              <label>
+                Nouvelle catégorie: <input value={form.category} onChange={handleChange("category")} />
+              </label>
+            </div>
+          )}
           <div className="inventory-form-row">
             <label>
               Quantité: 
@@ -97,7 +127,10 @@ function InventoryItem({ item, role, onBorrow, onUpdate }) {
       ) : (
         <div className="inventory-item-content">
           {role === "teacher" && (
-            <button className="inventory-item-edit-btn" onClick={() => setEditing(true)}>Modifier</button>
+            <div className="inventory-item-top-actions">
+              <button className="inventory-item-edit-btn" onClick={() => setEditing(true)}>Modifier</button>
+              <button className="inventory-item-delete-btn" onClick={() => onDelete && onDelete(item.id)}>Supprimer</button>
+            </div>
           )}
 
           {item.image && (

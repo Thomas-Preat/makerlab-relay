@@ -10,6 +10,14 @@ function Inventory() {
   const [showAdd, setShowAdd] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, location: "", image: "" });
   const [newUnlimited, setNewUnlimited] = useState(false);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const categoryOptions = Array.from(
+    new Set(
+      items
+        .map((currentItem) => (currentItem.category || "").trim())
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
 
   const handleBorrow = async (id) => {
     // optimistic UI update
@@ -65,6 +73,30 @@ function Inventory() {
     } catch (err) {
       console.error("Erreur lors de la modification d'un composant :", err);
       // optionally re-fetch or rollback
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const confirmed = window.confirm("Supprimer ce composant ?");
+    if (!confirmed) return;
+
+    const previousItems = items;
+    setItems((prev) => prev.filter((inventoryItem) => inventoryItem.id !== id));
+
+    try {
+      await nhost.graphql.request({
+        query: `
+          mutation DeleteComponent($id: uuid!) {
+            delete_components_by_pk(id: $id) {
+              id
+            }
+          }
+        `,
+        variables: { id }
+      });
+    } catch (err) {
+      console.error("Erreur lors de la suppression d'un composant :", err);
+      setItems(previousItems);
     }
   };
 
@@ -142,6 +174,7 @@ function Inventory() {
       if (added) {
         setItems((prev) => [...prev, added]);
         setNewItem({ name: "", category: "", quantity: 0, location: "", image: "" });
+        setIsCustomCategory(false);
         setShowAdd(false);
       }
     } catch (err) {
@@ -181,9 +214,38 @@ function Inventory() {
           </div>
           <div className="inventory-form-row">
             <label>
-              Catégorie: <input value={newItem.category} onChange={e => setNewItem(prev => ({ ...prev, category: e.target.value }))} />
+              Catégorie:
+              <select
+                value={isCustomCategory ? "__custom__" : (newItem.category || "")}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  if (selected === "__custom__") {
+                    setIsCustomCategory(true);
+                    setNewItem(prev => ({ ...prev, category: "" }));
+                    return;
+                  }
+                  setIsCustomCategory(false);
+                  setNewItem(prev => ({ ...prev, category: selected }));
+                }}
+              >
+                <option value="">Choisir une catégorie</option>
+                {categoryOptions.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+                <option value="__custom__">Nouvelle catégorie...</option>
+              </select>
             </label>
           </div>
+          {isCustomCategory && (
+            <div className="inventory-form-row">
+              <label>
+                Nouvelle catégorie: <input
+                  value={newItem.category}
+                  onChange={e => setNewItem(prev => ({ ...prev, category: e.target.value }))}
+                />
+              </label>
+            </div>
+          )}
           <div className="inventory-form-row">
             <label>
               Quantité: 
@@ -248,6 +310,8 @@ function Inventory() {
             role={role}
             onBorrow={handleBorrow}
             onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            categories={categoryOptions}
           />
         ))
       )}

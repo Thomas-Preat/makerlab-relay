@@ -51,14 +51,31 @@
   background: #0056b3;
 }
 
-.inventory-item-edit-btn {
+.inventory-item-top-actions {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-.inventory-item input {
+.inventory-item-edit-btn,
+.inventory-item-delete-btn {
+  width: 100%;
+}
+
+.inventory-item-delete-btn {
+  background: #dc3545;
+}
+
+.inventory-item-delete-btn:hover {
+  background: #b02a37;
+}
+
+.inventory-item input,
+.inventory-item select {
   padding: 0.25rem;
   margin-left: 0;
   width: 100%;
@@ -125,7 +142,9 @@
 }
 
 .inventory-add-panel input,
-.inventory-edit-form input {
+.inventory-edit-form input,
+.inventory-add-panel select,
+.inventory-edit-form select {
   max-width: 620px;
 }
 
@@ -186,9 +205,11 @@
     padding-right: 0;
   }
 
-  .inventory-item-edit-btn {
+  .inventory-item-top-actions {
     position: static;
     margin-bottom: 0.5rem;
+    display: inline-flex;
+    width: 100%;
   }
 
   .inventory-add-panel label,

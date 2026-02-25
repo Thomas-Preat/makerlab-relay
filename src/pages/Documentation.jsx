@@ -6,167 +6,284 @@ import Tabs from "../components/documentation/Tabs"; // shared component
 import { useRole } from "../context/RoleContext";
 
 export default function Documentation() {
-  const { slug } = useParams(); // pour la route dynamique
+  const { slug } = useParams();
   const { role } = useRole();
-  // component list isn't stored in state; we only use it inside the effect
-  const [selectedComponentId, setSelectedComponentId] = useState(null);
-  const [tabsContent, setTabsContent] = useState({
-    Explication: "",
-    Schéma: "",
-    Librairie: "",
-  });
+  const canEdit = role === "teacher" || role === "admin";
+  const [docTitle, setDocTitle] = useState("");
+  const [componentId, setComponentId] = useState(null);
+  const [tabs, setTabs] = useState({}); // {type: content}
+  const [docIds, setDocIds] = useState({}); // {type: id} pour updates
+  const [newTypeName, setNewTypeName] = useState("");
+  const [deleteConfirmType, setDeleteConfirmType] = useState(null); // type à supprimer en attente de confirmation
 
-  // Récupérer tous les composants
+  const hasDocumentation = Object.values(tabs).some(
+    (value) => typeof value === "string" && value.trim() !== ""
+  );
+
+  // Fetch ALL documentation records for this slug
   useEffect(() => {
-    async function fetchComponents() {
+    if (!slug) return;
+
+    async function fetchDocumentationBySlug() {
       try {
         const res = await nhost.graphql.request({
           query: `
-            query {
-              components(order_by: {name: asc}) {
+            query GetDocBySlug($slug: String!) {
+              documentation(where: {slug: {_eq: $slug}}) {
                 id
-                name
-                slug
-                category
-              }
-            }
-          `,
-        });
-        const comps = res.body.data.components || [];
-        // we don't keep the list in state at the moment, only use it locally
-
-        // Sélection par slug de l'URL
-        if (slug) {
-          const comp = comps.find((c) => c.slug === slug);
-          if (comp) setSelectedComponentId(comp.id);
-        }
-      } catch (err) {
-        console.error("Erreur fetching components:", err);
-      }
-    }
-
-    fetchComponents();
-  }, [slug]);
-
-  // Récupérer le Markdown pour le composant sélectionné
-  useEffect(() => {
-    if (!selectedComponentId) return;
-    async function fetchDocumentation() {
-      try {
-        const res = await nhost.graphql.request({
-          query: `
-            query GetDocumentation($component_id: uuid!) {
-              documentation(where: {component_id: {_eq: $component_id}}) {
+                title
+                component_id
                 type
                 content
               }
             }
           `,
-          variables: { component_id: selectedComponentId },
+          variables: { slug },
         });
 
         const docs = res.body.data.documentation || [];
+        if (docs.length === 0) {
+          setDocTitle("");
+          setComponentId(null);
+          setTabs({});
+          setDocIds({});
+          return;
+        }
 
-        // base contenant toutes les clés attendues
-        const contentObj = {
-          Explication: "",
-          Schéma: "",
-          Librairie: "",
-        };
-
-        // on normalise les types retournés par la base
-        const keyMap = {
-          explication: "Explication",
-          sch\u00e9ma: "Schéma",
-          schema: "Schéma",        // parfois sans accent
-          librairie: "Librairie",
-        };
-
+        // Build tabs object {type: content}
+        const newTabs = {};
+        const newDocIds = {};
         docs.forEach((doc) => {
-          if (doc.type) {
-            const key = keyMap[doc.type.toLowerCase()];
-            if (key) {
-              contentObj[key] = doc.content;
-            }
-          }
+          newTabs[doc.type] = doc.content || "";
+          newDocIds[doc.type] = doc.id;
         });
-        setTabsContent(contentObj);
+
+        // Use title from DB, or slug as fallback
+        setDocTitle(docs[0].title || slug);
+        setComponentId(docs[0].component_id); // null or id
+        setTabs(newTabs);
+        setDocIds(newDocIds);
       } catch (err) {
-        console.error("Erreur fetching documentation:", err);
+        console.error("Erreur fetching documentation by slug:", err);
       }
     }
 
-    fetchDocumentation();
-  }, [selectedComponentId]);
+    fetchDocumentationBySlug();
+  }, [slug]);
 
-  // Sauvegarder le contenu modifié : met à jour localement puis sur la DB
-  const handleSave = async (key, newContent) => {
-    setTabsContent((prev) => ({ ...prev, [key]: newContent }));
-
-    // mappe la clé affichée vers le type stocké en base
-    const reverseKeyMap = {
-      Explication: "explication",
-      Schéma: "schema",
-      Librairie: "librairie",
-    };
-
-    const dbType = reverseKeyMap[key] || key.toLowerCase();
+  const handleSave = async (type, newContent) => {
+    setTabs((prev) => ({ ...prev, [type]: newContent }));
 
     try {
-      // vérifier si une entrée existe déjà (on prend en compte la version avec accent)
-      const typesToCheck = dbType === "schema" ? ["schema", "schéma"] : [dbType];
-      const q = `query GetDoc($component_id: uuid!, $types: [String!]!) {
-        documentation(where: {component_id: {_eq: $component_id}, type: {_in: $types}}) {
-          id
-          type
-        }
-      }`;
-
-      const res = await nhost.graphql.request({
-        query: q,
-        variables: { component_id: selectedComponentId, types: typesToCheck },
-      });
-
-      const docs = res.body.data.documentation || [];
-
-      if (docs.length) {
-        // mise à jour du premier document trouvé (inutile de multiplier les enregistrements)
-        const docId = docs[0].id;
-        const m = `mutation UpdateDoc($id: uuid!, $content: String!) {
-          update_documentation_by_pk(pk_columns: {id: $id}, _set: {content: $content}) { id }
-        }`;
-
-        await nhost.graphql.request({ query: m, variables: { id: docId, content: newContent } });
+      if (docIds[type]) {
+        // Update existing record
+        const query = `
+          mutation UpdateDoc($id: uuid!, $content: String!) {
+            update_documentation_by_pk(pk_columns: {id: $id}, _set: {content: $content}) { 
+              id 
+            }
+          }
+        `;
+        await nhost.graphql.request({
+          query,
+          variables: { id: docIds[type], content: newContent },
+        });
       } else {
-        // insertion
-        const m2 = `mutation InsertDoc($component_id: uuid!, $type: String!, $content: String!) {
-          insert_documentation_one(object: { component_id: $component_id, type: $type, content: $content }) { id }
-        }`;
-
-        await nhost.graphql.request({ query: m2, variables: { component_id: selectedComponentId, type: dbType, content: newContent } });
+        // Insert new record for this type
+        const query = `
+          mutation InsertDoc($slug: String!, $type: String!, $content: String!, $component_id: uuid) {
+            insert_documentation_one(object: {
+              slug: $slug
+              type: $type
+              content: $content
+              component_id: $component_id
+              title: $title
+            }) { 
+              id 
+            }
+          }
+        `;
+        const res = await nhost.graphql.request({
+          query,
+          variables: {
+            slug,
+            type,
+            content: newContent,
+            component_id: componentId,
+            title: docTitle,
+          },
+        });
+        const newId = res.body.data.insert_documentation_one.id;
+        setDocIds((prev) => ({ ...prev, [type]: newId }));
       }
     } catch (err) {
       console.error("Erreur saving documentation:", err);
     }
   };
 
+  const handleAddType = async () => {
+    if (!newTypeName.trim()) return;
+    const cleanType = newTypeName.toLowerCase().trim();
+    if (tabs[cleanType]) {
+      alert("Ce type existe déjà");
+      return;
+    }
+
+    try {
+      const query = `
+        mutation InsertDoc($slug: String!, $type: String!, $content: String!, $component_id: uuid, $title: String) {
+          insert_documentation_one(object: {
+            slug: $slug
+            type: $type
+            content: $content
+            component_id: $component_id
+            title: $title
+          }) { 
+            id 
+          }
+        }
+      `;
+      const res = await nhost.graphql.request({
+        query,
+        variables: {
+          slug,
+          type: cleanType,
+          content: "",
+          component_id: componentId,
+          title: docTitle,
+        },
+      });
+      const newId = res.body.data.insert_documentation_one.id;
+      setTabs((prev) => ({ ...prev, [cleanType]: "" }));
+      setDocIds((prev) => ({ ...prev, [cleanType]: newId }));
+      setNewTypeName("");
+    } catch (err) {
+      console.error("Erreur adding type:", err);
+    }
+  };
+
+  const handleDeleteType = async (type) => {
+    if (!docIds[type]) return;
+    setDeleteConfirmType(type); // Affiche le modal de confirmation
+  };
+
+  const confirmDeleteType = async () => {
+    const type = deleteConfirmType;
+    if (!type || !docIds[type]) return;
+
+    try {
+      const query = `
+        mutation DeleteDoc($id: uuid!) {
+          delete_documentation_by_pk(id: $id) { 
+            id 
+          }
+        }
+      `;
+      await nhost.graphql.request({
+        query,
+        variables: { id: docIds[type] },
+      });
+      setTabs((prev) => {
+        const newTabs = { ...prev };
+        delete newTabs[type];
+        return newTabs;
+      });
+      setDocIds((prev) => {
+        const newIds = { ...prev };
+        delete newIds[type];
+        return newIds;
+      });
+    } catch (err) {
+      console.error("Erreur deleting type:", err);
+    } finally {
+      setDeleteConfirmType(null); // Ferme le modal
+    }
+  };
+
   return (
     <div className="doc-content" style={{ padding: "1rem", flex: 1 }}>
-      {!selectedComponentId && (
-        <div>Bienvenue sur la documentation. Sélectionnez un composant dans la sidebar.</div>
+      {Object.keys(tabs).length === 0 && (
+        <div>Bienvenue sur la documentation. Sélectionnez un élément dans la sidebar.</div>
       )}
 
-      {selectedComponentId && (
-        <Tabs
-          contentObj={tabsContent}
-          onSave={(key, newContent) => {
-            // update UI state immediately
-            setTabsContent((prev) => ({ ...prev, [key]: newContent }));
-            // persist change on the database
-            handleSave(key, newContent);
+      {Object.keys(tabs).length > 0 && (
+        <>
+          <h2 style={{ marginTop: 0 }}>{docTitle}</h2>
+          {hasDocumentation ? (
+            <Tabs
+              tabs={tabs}
+              onSave={handleSave}
+              canEdit={canEdit}
+              onAddType={canEdit ? handleAddType : null}
+              onDeleteType={canEdit ? handleDeleteType : null}
+              newTypeName={newTypeName}
+              onNewTypeNameChange={setNewTypeName}
+            />
+          ) : (
+            <p>Pas encore de documentation ici.</p>
+          )}
+        </>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {deleteConfirmType && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
           }}
-          canEdit={role === "teacher" || role === "admin"} // teachers and admins may edit
-        />
+        >
+          <div
+            style={{
+              background: "#1a1a1a",
+              color: "white",
+              padding: "1.5rem",
+              borderRadius: "8px",
+              maxWidth: "400px",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Confirmer la suppression</h3>
+            <p>Êtes-vous sûr de vouloir supprimer la section <strong>"{deleteConfirmType}"</strong> ?</p>
+            <div style={{ display: "flex", gap: "0.8rem", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setDeleteConfirmType(null)}
+                style={{
+                  padding: "0.5rem 1rem",
+                  background: "#666",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmDeleteType}
+                style={{
+                  padding: "0.5rem 1rem",
+                  background: "#d32f2f",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
