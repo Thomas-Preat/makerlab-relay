@@ -3,19 +3,32 @@ import { useState, useEffect } from "react";
 function InventoryItem({ item, role, onBorrow, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...item });
+  const [unlimited, setUnlimited] = useState(item.quantity == null);
 
   // keep form in sync with props when item changes
   useEffect(() => {
     setForm({ ...item });
+    setUnlimited(item.quantity == null);
   }, [item]);
 
   const handleChange = (field) => (e) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
+    if (field === "quantity") setUnlimited(false);
   };
 
   const save = () => {
-    // quantity should be a number
-    const updated = { ...form, quantity: Number(form.quantity) };
+    let updatedQuantity;
+    if (unlimited) {
+      updatedQuantity = null;
+    } else {
+      const qty = Number(form.quantity);
+      if (qty < 0) {
+        alert("La quantité ne peut pas être négative");
+        return;
+      }
+      updatedQuantity = qty;
+    }
+    const updated = { ...form, quantity: updatedQuantity };
     onUpdate && onUpdate(updated);
     setEditing(false);
   };
@@ -41,7 +54,26 @@ function InventoryItem({ item, role, onBorrow, onUpdate }) {
           </div>
           <div>
             <label>
-              Quantité: <input type="number" value={form.quantity} onChange={handleChange("quantity")} />
+              Quantité: 
+              <input
+                type="number"
+                value={form.quantity ?? ""}
+                disabled={unlimited}
+                onChange={handleChange("quantity")}
+              />
+            </label>
+            <label style={{ marginLeft: "1rem" }}>
+              <input
+                type="checkbox"
+                checked={unlimited}
+                onChange={e => {
+                  setUnlimited(e.target.checked);
+                  if (e.target.checked) {
+                    setForm(prev => ({ ...prev, quantity: null }));
+                  }
+                }}
+              />
+              Quantité illimitée
             </label>
           </div>
           <div>
@@ -56,7 +88,7 @@ function InventoryItem({ item, role, onBorrow, onUpdate }) {
         <>
           <h3>{item.name}</h3>
           <p>Catégorie : {item.category}</p>
-          <p>Disponible : {item.quantity}</p>
+          <p>Disponible : {item.quantity == null ? "oui" : item.quantity}</p>
           <p>Emplacement : {item.location}</p>
 
           {role === "student" && item.quantity > 0 && (

@@ -7,6 +7,9 @@ function Inventory() {
   const { role } = useRole();
   const [items, setItems] = useState([]);  // will be filled from the database
   const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, location: "" });
+  const [newUnlimited, setNewUnlimited] = useState(false);
 
   const handleBorrow = async (id) => {
     // optimistic UI update
@@ -89,6 +92,59 @@ function Inventory() {
     fetchItems();
   }, []);
 
+  // helper to slugify a string (simple)
+  const slugify = (str) =>
+    str
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  // teachers can add new item
+  const handleAdd = async () => {
+    let qtyValue;
+    if (newUnlimited) {
+      qtyValue = null;
+    } else {
+      const qty = Number(newItem.quantity);
+      if (qty < 0) {
+        alert("La quantité ne peut pas être négative");
+        return;
+      }
+      qtyValue = qty;
+    }
+    const itemToInsert = {
+      ...newItem,
+      quantity: qtyValue,
+      slug: slugify(newItem.name) || Date.now().toString()
+    };
+    try {
+      const res = await nhost.graphql.request({
+        query: `
+          mutation InsertComponent($object: components_insert_input!) {
+            insert_components_one(object: $object) {
+              id
+              name
+              category
+              quantity
+              location
+              slug
+            }
+          }
+        `,
+        variables: { object: itemToInsert }
+      });
+      const added = res.body.data.insert_components_one;
+      if (added) {
+        setItems((prev) => [...prev, added]);
+        setNewItem({ name: "", category: "", quantity: 0, location: "" });
+        setShowAdd(false);
+      }
+    } catch (err) {
+      console.error("Erreur ajout composant:", err);
+    }
+  };
+
   // prepare filtered list based on search term (match name or category)
   const displayed = items.filter(item => {
     const term = search.trim().toLowerCase();
@@ -102,6 +158,59 @@ function Inventory() {
   return (
     <div className="inventory-page">
       <h1>Inventaire</h1>
+
+      {role !== "student" && (
+        <div style={{ marginBottom: "1rem" }}>
+          <button onClick={() => setShowAdd((s) => !s)}>
+            {showAdd ? "Annuler" : "Ajouter un élément"}
+          </button>
+        </div>
+      )}
+
+      {showAdd && (
+        <div style={{ marginBottom: "1rem", border: "1px solid #ccc", padding: "1rem", borderRadius: "4px" }}>
+          <h3>Nouveau composant</h3>
+          <div>
+            <label>
+              Nom: <input value={newItem.name} onChange={e => setNewItem(prev => ({ ...prev, name: e.target.value }))} />
+            </label>
+          </div>
+          <div>
+            <label>
+              Catégorie: <input value={newItem.category} onChange={e => setNewItem(prev => ({ ...prev, category: e.target.value }))} />
+            </label>
+          </div>
+          <div>
+            <label>
+              Quantité: 
+              <input
+                type="number"
+                min="0"
+                disabled={newUnlimited}
+                value={newItem.quantity}
+                onChange={e => setNewItem(prev => ({ ...prev, quantity: e.target.value }))}
+              />
+            </label>
+            <label style={{ marginLeft: "1rem" }}>
+              <input
+                type="checkbox"
+                checked={newUnlimited}
+                onChange={e => {
+                  setNewUnlimited(e.target.checked);
+                  if (e.target.checked) setNewItem(prev => ({ ...prev, quantity: null }));
+                }}
+              />
+              Quantité illimitée
+            </label>
+          </div>
+          <div>
+            <label>
+              Emplacement: <input value={newItem.location} onChange={e => setNewItem(prev => ({ ...prev, location: e.target.value }))} />
+            </label>
+          </div>
+          <button onClick={handleAdd}>Enregistrer</button>
+        </div>
+      )}
 
       <div className="inventory-search">
         <input
