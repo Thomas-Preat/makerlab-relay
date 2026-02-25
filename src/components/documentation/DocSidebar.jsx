@@ -21,6 +21,7 @@ function DocSidebar() {
   const [newDocType, setNewDocType] = useState("explication");
   const [freeDocTitle, setFreeDocTitle] = useState("");
   const [freeDocType, setFreeDocType] = useState("introduction");
+  const [freeDocPosition, setFreeDocPosition] = useState("middle");
   const [freeDocs, setFreeDocs] = useState([]);
 
   const documentedComponents = useMemo(
@@ -64,8 +65,10 @@ function DocSidebar() {
               component_id
             }
             documentation_free: documentation(where: {component_id: {_is_null: true}}, order_by: {title: asc}) {
+              id
               slug
               title
+              position
             }
           }
         `,
@@ -106,28 +109,31 @@ function DocSidebar() {
 
       await nhost.graphql.request({
         query: `
-          mutation InsertFreeDoc($slug: String!, $title: String!, $type: String!, $content: String!) {
+          mutation InsertFreeDoc($slug: String!, $title: String!, $type: String!, $content: String!, $position: String) {
             insert_documentation_one(object: {
               slug: $slug,
               title: $title,
               type: $type,
-              content: $content
+              content: $content,
+              position: $position
             }) {
               id
             }
           }
         `,
-        variables: { 
-          slug, 
-          title: freeDocTitle, 
+        variables: {
+          slug,
+          title: freeDocTitle,
           type: freeDocType || "introduction",
-          content: "Documentation à compléter." 
+          content: "Documentation à compléter.",
+          position: freeDocPosition === "middle" ? null : freeDocPosition,
         },
       });
 
       setAddingDoc(false);
       setFreeDocTitle("");
       setFreeDocType("introduction");
+      setFreeDocPosition("middle");
       setAddMode("linked");
       navigate(`/documentation/${slug}`);
       await fetchSidebarData();
@@ -173,6 +179,88 @@ function DocSidebar() {
       console.error("Erreur lors de la création de la documentation :", err);
     }
   };
+
+  const handleUpdateFreeDocPosition = async (docId, nextPosition) => {
+    try {
+      await nhost.graphql.request({
+        query: `
+          mutation UpdateFreeDocPosition($id: uuid!, $position: String) {
+            update_documentation_by_pk(pk_columns: {id: $id}, _set: {position: $position}) {
+              id
+              position
+            }
+          }
+        `,
+        variables: {
+          id: docId,
+          position: nextPosition === "middle" ? null : nextPosition,
+        },
+      });
+      await fetchSidebarData();
+    } catch (err) {
+      console.error("Erreur update free doc position:", err);
+    }
+  };
+
+  const renderFreeDocsSection = (list, options = {}) => {
+    if (!list.length) return null;
+    const { showTopBorder = true, showBottomBorder = false } = options;
+    return (
+      <div
+        style={{
+          marginTop: "1.5rem",
+          borderTop: showTopBorder ? "1px solid #2f2f2f" : "none",
+          borderBottom: showBottomBorder ? "1px solid #2f2f2f" : "none",
+          paddingTop: showTopBorder ? "1rem" : "0",
+          paddingBottom: showBottomBorder ? "1rem" : "0",
+        }}
+      >
+        {list.map((doc) => {
+          const isActive = location.pathname.endsWith(`/${doc.slug}`);
+          return (
+            <div key={doc.slug} style={{ marginBottom: "0.3rem", display: "flex", gap: "0.4rem", alignItems: "center" }}>
+              <Link
+                to={`/documentation/${doc.slug}`}
+                style={{
+                  color: isActive ? "#4ea8de" : "white",
+                  textDecoration: "none",
+                  fontWeight: isActive ? "bold" : "normal",
+                  flex: 1,
+                }}
+                onClick={() => {
+                  if (isMobile) setIsOpen(false);
+                }}
+              >
+                {doc.title}
+              </Link>
+              {canEdit && (
+                <select
+                  value={doc.position || "middle"}
+                  onChange={(e) => handleUpdateFreeDocPosition(doc.id, e.target.value)}
+                  style={{
+                    background: "#1a1a1a",
+                    color: "white",
+                    border: "1px solid #333",
+                    borderRadius: "4px",
+                    fontSize: "0.8rem",
+                    padding: "0.15rem 0.3rem",
+                  }}
+                >
+                  <option value="top">Haut</option>
+                  <option value="middle">Milieu</option>
+                  <option value="bottom">Bas</option>
+                </select>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const freeDocsTop = freeDocs.filter((doc) => doc.position === "top");
+  const freeDocsMiddle = freeDocs.filter((doc) => !doc.position || doc.position === "middle");
+  const freeDocsBottom = freeDocs.filter((doc) => doc.position === "bottom");
 
 
   return (
@@ -352,6 +440,23 @@ function DocSidebar() {
                         marginTop: "0.4rem",
                       }}
                     />
+                    <select
+                      value={freeDocPosition}
+                      onChange={(e) => setFreeDocPosition(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.4rem",
+                        borderRadius: "4px",
+                        border: "1px solid #444",
+                        background: "#1a1a1a",
+                        color: "white",
+                        marginTop: "0.4rem",
+                      }}
+                    >
+                      <option value="top">Placer en haut</option>
+                      <option value="middle">Placer au milieu</option>
+                      <option value="bottom">Placer en bas</option>
+                    </select>
                     <button
                       onClick={handleCreateFreeDocumentation}
                       disabled={!freeDocTitle.trim()}
@@ -371,6 +476,15 @@ function DocSidebar() {
               </div>
             )}
           </div>
+        )}
+
+        {renderFreeDocsSection(freeDocsTop, {
+          showTopBorder: false,
+          showBottomBorder: true,
+        })}
+
+        {freeDocsTop.length > 0 && (
+          <div style={{ marginTop: "0.8rem" }} />
         )}
 
         {Object.keys(componentsByCategory).length === 0 ? (
@@ -415,31 +529,14 @@ function DocSidebar() {
           ))
         )}
 
-        {freeDocs.length > 0 && (
-          <div style={{ marginTop: "1.5rem", borderTop: "1px solid #2f2f2f", paddingTop: "1rem" }}>
-            <div style={{ fontWeight: "bold", marginBottom: "0.5rem" }}>Documentation libre</div>
-            {freeDocs.map((doc) => {
-              const isActive = location.pathname.endsWith(`/${doc.slug}`);
-              return (
-                <div key={doc.slug} style={{ marginBottom: "0.3rem" }}>
-                  <Link
-                    to={`/documentation/${doc.slug}`}
-                    style={{
-                      color: isActive ? "#4ea8de" : "white",
-                      textDecoration: "none",
-                      fontWeight: isActive ? "bold" : "normal",
-                    }}
-                    onClick={() => {
-                      if (isMobile) setIsOpen(false);
-                    }}
-                  >
-                    {doc.title}
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {renderFreeDocsSection(freeDocsMiddle, {
+          showTopBorder: true,
+          showBottomBorder: true,
+        })}
+        {renderFreeDocsSection(freeDocsBottom, {
+          showTopBorder: true,
+          showBottomBorder: false,
+        })}
       </div>
     </>
   );

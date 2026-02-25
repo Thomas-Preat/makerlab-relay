@@ -59,9 +59,30 @@ export default function Documentation() {
           newDocIds[doc.type] = doc.id;
         });
 
-        // Use title from DB, or slug as fallback
-        setDocTitle(docs[0].title || slug);
-        setComponentId(docs[0].component_id); // null or id
+        // Use title from DB, or component name (if linked), or slug as fallback
+        let resolvedTitle = docs[0].title || "";
+        const linkedComponentId = docs[0].component_id;
+
+        if (!resolvedTitle && linkedComponentId) {
+          try {
+            const componentRes = await nhost.graphql.request({
+              query: `
+                query GetComponentName($id: uuid!) {
+                  components_by_pk(id: $id) {
+                    name
+                  }
+                }
+              `,
+              variables: { id: linkedComponentId },
+            });
+            resolvedTitle = componentRes.body.data.components_by_pk?.name || "";
+          } catch (componentErr) {
+            console.error("Erreur fetching component name:", componentErr);
+          }
+        }
+
+        setDocTitle(resolvedTitle || slug);
+        setComponentId(linkedComponentId); // null or id
         setTabs(newTabs);
         setDocIds(newDocIds);
       } catch (err) {
