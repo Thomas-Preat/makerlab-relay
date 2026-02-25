@@ -52,7 +52,7 @@ function InventoryItem({ item, role, onBorrow, onUpdate }) {
               Catégorie: <input value={form.category} onChange={handleChange("category")} />
             </label>
           </div>
-          <div className="inventory-form-row inventory-form-row-split">
+          <div className="inventory-form-row">
             <label>
               Quantité: 
               <input
@@ -62,19 +62,22 @@ function InventoryItem({ item, role, onBorrow, onUpdate }) {
                 onChange={handleChange("quantity")}
               />
             </label>
-            <label className="inventory-inline-checkbox">
-              <input
-                type="checkbox"
-                checked={unlimited}
-                onChange={e => {
-                  setUnlimited(e.target.checked);
-                  if (e.target.checked) {
-                    setForm(prev => ({ ...prev, quantity: null }));
-                  }
-                }}
-              />
-              Quantité illimitée
-            </label>
+            <div className="inventory-checkbox-under">
+              <label className="inventory-inline-checkbox">
+                Quantité illimitée
+                <input
+                  type="checkbox"
+                  checked={unlimited}
+                  onChange={e => {
+                    setUnlimited(e.target.checked);
+                    if (e.target.checked) {
+                      setForm(prev => ({ ...prev, quantity: null }));
+                    }
+                  }}
+                />
+                
+              </label>
+            </div>
           </div>
           <div className="inventory-form-row">
             <label>

@@ -184,7 +184,7 @@ function Inventory() {
               Catégorie: <input value={newItem.category} onChange={e => setNewItem(prev => ({ ...prev, category: e.target.value }))} />
             </label>
           </div>
-          <div className="inventory-form-row inventory-form-row-split">
+          <div className="inventory-form-row">
             <label>
               Quantité: 
               <input
@@ -195,17 +195,19 @@ function Inventory() {
                 onChange={e => setNewItem(prev => ({ ...prev, quantity: e.target.value }))}
               />
             </label>
-            <label className="inventory-inline-checkbox">
-              <input
-                type="checkbox"
-                checked={newUnlimited}
-                onChange={e => {
-                  setNewUnlimited(e.target.checked);
-                  if (e.target.checked) setNewItem(prev => ({ ...prev, quantity: null }));
-                }}
-              />
-              Quantité illimitée
-            </label>
+            <div className="inventory-checkbox-under">
+              <label className="inventory-inline-checkbox">
+                <input
+                  type="checkbox"
+                  checked={newUnlimited}
+                  onChange={e => {
+                    setNewUnlimited(e.target.checked);
+                    if (e.target.checked) setNewItem(prev => ({ ...prev, quantity: null }));
+                  }}
+                />
+                Quantité illimitée
+              </label>
+            </div>
           </div>
           <div className="inventory-form-row">
             <label>
