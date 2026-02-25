@@ -15,6 +15,7 @@ export default function Documentation() {
   const [docIds, setDocIds] = useState({}); // {type: id} pour updates
   const [newTypeName, setNewTypeName] = useState("");
   const [deleteConfirmType, setDeleteConfirmType] = useState(null); // type à supprimer en attente de confirmation
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false); // confirmation suppression entière
 
   const hasDocumentation = Object.values(tabs).some(
     (value) => typeof value === "string" && value.trim() !== ""
@@ -200,6 +201,34 @@ export default function Documentation() {
     }
   };
 
+  const confirmDeleteAll = async () => {
+    try {
+      // Delete ALL documentation records for this slug
+      const query = `
+        mutation DeleteAll($slug: String!) {
+          delete_documentation(where: {slug: {_eq: $slug}}) {
+            affected_rows
+          }
+        }
+      `;
+      await nhost.graphql.request({
+        query,
+        variables: { slug },
+      });
+      // Reset everything
+      setDocTitle("");
+      setComponentId(null);
+      setTabs({});
+      setDocIds({});
+      setDeleteAllConfirm(false);
+      // Navigate home
+      window.location.href = "/documentation";
+    } catch (err) {
+      console.error("Erreur deleting all documentation:", err);
+      setDeleteAllConfirm(false);
+    }
+  };
+
   return (
     <div className="doc-content" style={{ padding: "1rem", flex: 1 }}>
       {Object.keys(tabs).length === 0 && (
@@ -208,8 +237,27 @@ export default function Documentation() {
 
       {Object.keys(tabs).length > 0 && (
         <>
-          <h2 style={{ marginTop: 0 }}>{docTitle}</h2>
-          {hasDocumentation ? (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <h2 style={{ marginTop: 0 }}>{docTitle}</h2>
+            {canEdit && (
+              <button
+                onClick={() => setDeleteAllConfirm(true)}
+                style={{
+                  padding: "0.5rem 1rem",
+                  background: "#cc0000",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+                title="Supprimer entièrement cette documentation"
+              >
+                🗑️ Supprimer la doc
+              </button>
+            )}
+          </div>
+          {hasDocumentation || canEdit ? (
             <Tabs
               tabs={tabs}
               onSave={handleSave}
@@ -280,6 +328,68 @@ export default function Documentation() {
                 }}
               >
                 Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation suppression entière */}
+      {deleteAllConfirm && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              background: "#1a1a1a",
+              color: "white",
+              padding: "1.5rem",
+              borderRadius: "8px",
+              maxWidth: "400px",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            <h3 style={{ marginTop: 0, color: "#ff6b6b" }}>⚠️ Supprimer entièrement</h3>
+            <p>Êtes-vous sûr de vouloir supprimer <strong>toute la documentation</strong> de "<strong>{docTitle}</strong>" ?</p>
+            <p style={{ color: "#ccc", fontSize: "0.9rem" }}>Cette action ne peut pas être annulée.</p>
+            <div style={{ display: "flex", gap: "0.8rem", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setDeleteAllConfirm(false)}
+                style={{
+                  padding: "0.5rem 1rem",
+                  background: "#666",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmDeleteAll}
+                style={{
+                  padding: "0.5rem 1rem",
+                  background: "#cc0000",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Supprimer définitivement
               </button>
             </div>
           </div>
