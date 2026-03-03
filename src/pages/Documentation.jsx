@@ -189,6 +189,55 @@ export default function Documentation() {
     setDeleteConfirmType(type); // Affiche le modal de confirmation
   };
 
+  const handleRenameType = async (currentType, nextTypeRaw) => {
+    if (!docIds[currentType]) return;
+
+    const nextType = nextTypeRaw.toLowerCase().trim();
+    if (!nextType) {
+      alert("Le nom de l'onglet ne peut pas être vide");
+      return;
+    }
+
+    if (nextType === currentType) return;
+
+    if (tabs[nextType]) {
+      alert("Un onglet avec ce nom existe déjà");
+      return;
+    }
+
+    try {
+      await nhost.graphql.request({
+        query: `
+          mutation RenameDocType($id: uuid!, $type: String!) {
+            update_documentation_by_pk(pk_columns: {id: $id}, _set: {type: $type}) {
+              id
+              type
+            }
+          }
+        `,
+        variables: { id: docIds[currentType], type: nextType },
+      });
+
+      setTabs((prev) => {
+        const updatedTabs = { ...prev };
+        const existingContent = updatedTabs[currentType] || "";
+        delete updatedTabs[currentType];
+        updatedTabs[nextType] = existingContent;
+        return updatedTabs;
+      });
+
+      setDocIds((prev) => {
+        const updatedIds = { ...prev };
+        const existingId = updatedIds[currentType];
+        delete updatedIds[currentType];
+        updatedIds[nextType] = existingId;
+        return updatedIds;
+      });
+    } catch (err) {
+      console.error("Erreur lors du renommage de l'onglet:", err);
+    }
+  };
+
   const confirmDeleteType = async () => {
     const type = deleteConfirmType;
     if (!type || !docIds[type]) return;
@@ -285,6 +334,7 @@ export default function Documentation() {
               canEdit={canEdit}
               onAddType={canEdit ? handleAddType : null}
               onDeleteType={canEdit ? handleDeleteType : null}
+              onRenameType={canEdit ? handleRenameType : null}
               newTypeName={newTypeName}
               onNewTypeNameChange={setNewTypeName}
             />
