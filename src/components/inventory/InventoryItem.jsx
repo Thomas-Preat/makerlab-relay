@@ -53,6 +53,11 @@ function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, categories = 
           </div>
           <div className="inventory-form-row">
             <label>
+              Référence: <input value={form.reference || ""} onChange={handleChange("reference")} placeholder="Ex: S140" />
+            </label>
+          </div>
+          <div className="inventory-form-row">
+            <label>
               Catégorie:
               <select
                 value={isCustomCategory ? "__custom__" : (form.category || "")}
@@ -145,6 +150,7 @@ function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, categories = 
 
           <div className="inventory-item-details">
             <h3>{item.name}</h3>
+            {item.reference && <div className="inventory-item-reference">{item.reference}</div>}
             <p>Catégorie : {item.category}</p>
             <p>Disponible : {item.quantity == null ? "oui" : item.quantity}</p>
             <p>Emplacement : {item.location}</p>

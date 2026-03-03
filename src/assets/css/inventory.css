@@ -32,6 +32,13 @@
 
 .inventory-item h3 {
   margin-top: 0;
+  margin-bottom: 0.15rem;
+}
+
+.inventory-item-reference {
+  font-size: 0.85rem;
+  opacity: 0.75;
+  margin-bottom: 0.45rem;
 }
 
 .inventory-item p {

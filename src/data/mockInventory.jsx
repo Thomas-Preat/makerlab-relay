@@ -2,6 +2,7 @@ const mockInventory = [
   {
     id: 1,
     name: "Arduino Uno",
+    reference: "A-UNO-R3",
     category: "Microcontroleur",
     quantity: 5,
     location: "Armoire A1"
@@ -9,6 +10,7 @@ const mockInventory = [
   {
     id: 2,
     name: "Resistance 220 ohm",
+    reference: "R220-1/4W",
     category: "Composant passif",
     quantity: 120,
     location: "Tiroir B3"
@@ -16,6 +18,7 @@ const mockInventory = [
   {
     id: 3,
     name: "Capteur ultrason HC-SR04",
+    reference: "HC-SR04",
     category: "Capteur",
     quantity: 8,
     location: "Boite C2"

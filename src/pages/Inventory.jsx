@@ -8,7 +8,7 @@ function Inventory() {
   const [items, setItems] = useState([]);  // will be filled from the database
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-  const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, location: "", image: "" });
+  const [newItem, setNewItem] = useState({ name: "", reference: "", category: "", quantity: 0, location: "", image: "" });
   const [newUnlimited, setNewUnlimited] = useState(false);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const categoryOptions = Array.from(
@@ -53,7 +53,7 @@ function Inventory() {
     setItems(items.map(i => (i.id === updated.id ? { ...i, ...updated } : i)));
 
     try {
-      const { id, name, category, quantity, location } = updated;
+      const { id, name, reference, category, quantity, location } = updated;
       const { image } = updated;
       await nhost.graphql.request({
         query: `
@@ -61,6 +61,7 @@ function Inventory() {
             update_components_by_pk(pk_columns: {id: $id}, _set: $changes) {
               id
               name
+              reference
               category
               quantity
               location
@@ -68,7 +69,7 @@ function Inventory() {
             }
           }
         `,
-        variables: { id, changes: { name, category, quantity, location, image } }
+        variables: { id, changes: { name, reference, category, quantity, location, image } }
       });
     } catch (err) {
       console.error("Erreur lors de la modification d'un composant :", err);
@@ -110,6 +111,7 @@ function Inventory() {
               components(order_by: { name: asc }) {
                 id
                 name
+                reference
                 slug
                 category
                 quantity
@@ -160,6 +162,7 @@ function Inventory() {
             insert_components_one(object: $object) {
               id
               name
+              reference
               category
               quantity
               location
@@ -173,7 +176,7 @@ function Inventory() {
       const added = res.body.data.insert_components_one;
       if (added) {
         setItems((prev) => [...prev, added]);
-        setNewItem({ name: "", category: "", quantity: 0, location: "", image: "" });
+        setNewItem({ name: "", reference: "", category: "", quantity: 0, location: "", image: "" });
         setIsCustomCategory(false);
         setShowAdd(false);
       }
@@ -182,12 +185,13 @@ function Inventory() {
     }
   };
 
-  // prepare filtered list based on search term (match name or category)
+  // prepare filtered list based on search term (match name, reference or category)
   const displayed = items.filter(item => {
     const term = search.trim().toLowerCase();
     if (!term) return true;
     return (
       item.name.toLowerCase().includes(term) ||
+      (item.reference || "").toLowerCase().includes(term) ||
       item.category.toLowerCase().includes(term)
     );
   });
@@ -210,6 +214,11 @@ function Inventory() {
           <div className="inventory-form-row">
             <label>
               Nom: <input value={newItem.name} onChange={e => setNewItem(prev => ({ ...prev, name: e.target.value }))} />
+            </label>
+          </div>
+          <div className="inventory-form-row">
+            <label>
+              Référence: <input value={newItem.reference} onChange={e => setNewItem(prev => ({ ...prev, reference: e.target.value }))} placeholder="Ex: S140" />
             </label>
           </div>
           <div className="inventory-form-row">
@@ -294,7 +303,7 @@ function Inventory() {
       <div className="inventory-search">
         <input
           type="text"
-          placeholder="Rechercher par nom ou catégorie..."
+          placeholder="Rechercher par nom, référence ou catégorie..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
