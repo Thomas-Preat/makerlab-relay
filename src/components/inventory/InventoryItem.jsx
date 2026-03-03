@@ -1,19 +1,25 @@
 import { useState, useEffect } from "react";
 
-function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, categories = [] }) {
+function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, categories = [], locations = [] }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...item });
   const [unlimited, setUnlimited] = useState(item.quantity == null);
+  const [imageError, setImageError] = useState(false);
   const [isCustomCategory, setIsCustomCategory] = useState(
     Boolean(item.category) && !categories.includes(item.category)
+  );
+  const [isCustomLocation, setIsCustomLocation] = useState(
+    Boolean(item.location) && !locations.includes(item.location)
   );
 
   // keep form in sync with props when item changes
   useEffect(() => {
     setForm({ ...item });
     setUnlimited(item.quantity == null);
+    setImageError(false);
     setIsCustomCategory(Boolean(item.category) && !categories.includes(item.category));
-  }, [item, categories]);
+    setIsCustomLocation(Boolean(item.location) && !locations.includes(item.location));
+  }, [item, categories, locations]);
 
   const handleChange = (field) => (e) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
@@ -116,9 +122,35 @@ function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, categories = 
           </div>
           <div className="inventory-form-row">
             <label>
-              Emplacement: <input value={form.location} onChange={handleChange("location")} />
+              Emplacement:
+              <select
+                value={isCustomLocation ? "__custom__" : (form.location || "")}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  if (selected === "__custom__") {
+                    setIsCustomLocation(true);
+                    setForm(prev => ({ ...prev, location: "" }));
+                    return;
+                  }
+                  setIsCustomLocation(false);
+                  setForm(prev => ({ ...prev, location: selected }));
+                }}
+              >
+                <option value="">Choisir un emplacement</option>
+                {locations.map((location) => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+                <option value="__custom__">Nouvel emplacement...</option>
+              </select>
             </label>
           </div>
+          {isCustomLocation && (
+            <div className="inventory-form-row">
+              <label>
+                Nouvel emplacement: <input value={form.location || ""} onChange={handleChange("location")} />
+              </label>
+            </div>
+          )}
           <div className="inventory-form-row">
             <label>
               Image (URL) : <input value={form.image || ""} onChange={handleChange("image")} placeholder="https://..." />
@@ -138,15 +170,17 @@ function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, categories = 
             </div>
           )}
 
-          {item.image && (
-            <div className="inventory-item-image">
+          <div className="inventory-item-image">
+            {item.image && !imageError ? (
               <img
                 src={item.image}
                 alt={item.name}
-                onError={(e) => { e.target.style.display = "none"; }}
+                onError={() => setImageError(true)}
               />
-            </div>
-          )}
+            ) : (
+              <div className="inventory-item-image-placeholder">-</div>
+            )}
+          </div>
 
           <div className="inventory-item-details">
             <h3>{item.name}</h3>

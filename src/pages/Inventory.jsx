@@ -7,14 +7,24 @@ function Inventory() {
   const { role } = useRole();
   const [items, setItems] = useState([]);  // will be filled from the database
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
   const [showAdd, setShowAdd] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", reference: "", category: "", quantity: 0, location: "", image: "" });
   const [newUnlimited, setNewUnlimited] = useState(false);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [isCustomLocation, setIsCustomLocation] = useState(false);
   const categoryOptions = Array.from(
     new Set(
       items
         .map((currentItem) => (currentItem.category || "").trim())
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+  const locationOptions = Array.from(
+    new Set(
+      items
+        .map((currentItem) => (currentItem.location || "").trim())
         .filter(Boolean)
     )
   ).sort((a, b) => a.localeCompare(b));
@@ -88,6 +98,9 @@ function Inventory() {
       await nhost.graphql.request({
         query: `
           mutation DeleteComponent($id: uuid!) {
+            delete_documentation(where: {component_id: {_eq: $id}}) {
+              affected_rows
+            }
             delete_components_by_pk(id: $id) {
               id
             }
@@ -178,6 +191,7 @@ function Inventory() {
         setItems((prev) => [...prev, added]);
         setNewItem({ name: "", reference: "", category: "", quantity: 0, location: "", image: "" });
         setIsCustomCategory(false);
+        setIsCustomLocation(false);
         setShowAdd(false);
       }
     } catch (err) {
@@ -195,6 +209,16 @@ function Inventory() {
       item.category.toLowerCase().includes(term)
     );
   });
+
+  const totalPages = Math.max(1, Math.ceil(displayed.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const pagedItems = displayed.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   return (
     <div className="inventory-page">
@@ -282,9 +306,38 @@ function Inventory() {
           </div>
           <div className="inventory-form-row">
             <label>
-              Emplacement: <input value={newItem.location} onChange={e => setNewItem(prev => ({ ...prev, location: e.target.value }))} />
+              Emplacement:
+              <select
+                value={isCustomLocation ? "__custom__" : (newItem.location || "")}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  if (selected === "__custom__") {
+                    setIsCustomLocation(true);
+                    setNewItem(prev => ({ ...prev, location: "" }));
+                    return;
+                  }
+                  setIsCustomLocation(false);
+                  setNewItem(prev => ({ ...prev, location: selected }));
+                }}
+              >
+                <option value="">Choisir un emplacement</option>
+                {locationOptions.map((location) => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+                <option value="__custom__">Nouvel emplacement...</option>
+              </select>
             </label>
           </div>
+          {isCustomLocation && (
+            <div className="inventory-form-row">
+              <label>
+                Nouvel emplacement: <input
+                  value={newItem.location}
+                  onChange={e => setNewItem(prev => ({ ...prev, location: e.target.value }))}
+                />
+              </label>
+            </div>
+          )}
           <div className="inventory-form-row">
             <label>
               Image (URL) : <input
@@ -301,18 +354,38 @@ function Inventory() {
       )}
 
       <div className="inventory-search">
-        <input
-          type="text"
-          placeholder="Rechercher par nom, référence ou catégorie..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            type="text"
+            placeholder="Rechercher par nom, référence ou catégorie..."
+            value={search}
+            onChange={e => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+          <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            Par page:
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              style={{ padding: "0.35rem" }}
+            >
+              <option value={6}>6</option>
+              <option value={12}>12</option>
+              <option value={24}>24</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       {displayed.length === 0 ? (
         <p>Aucun article trouvé.</p>
       ) : (
-        displayed.map(item => (
+        pagedItems.map(item => (
           <InventoryItem
             key={item.id}
             item={item}
@@ -321,8 +394,25 @@ function Inventory() {
             onUpdate={handleUpdate}
             onDelete={handleDelete}
             categories={categoryOptions}
+            locations={locationOptions}
           />
         ))
+      )}
+
+      {displayed.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+          <span>
+            Page {currentPage} / {totalPages}
+          </span>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+              Précédent
+            </button>
+            <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+              Suivant
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
