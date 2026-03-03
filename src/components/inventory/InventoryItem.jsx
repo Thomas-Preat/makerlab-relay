@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, categories = [], locations = [] }) {
+function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, hasDocumentation = false, onOpenDocumentation, categories = [], locations = [] }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...item });
   const [unlimited, setUnlimited] = useState(item.quantity == null);
@@ -180,6 +180,12 @@ function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, categories = 
             ) : (
               <div className="inventory-item-image-placeholder">-</div>
             )}
+
+            {hasDocumentation && (
+              <button className="inventory-item-doc-btn" onClick={() => onOpenDocumentation && onOpenDocumentation()}>
+                Documentation
+              </button>
+            )}
           </div>
 
           <div className="inventory-item-details">
@@ -188,12 +194,6 @@ function InventoryItem({ item, role, onBorrow, onUpdate, onDelete, categories = 
             <p>Catégorie : {item.category}</p>
             <p>Disponible : {item.quantity == null ? "oui" : item.quantity}</p>
             <p>Emplacement : {item.location}</p>
-
-            {role === "student" && item.quantity > 0 && (
-              <button onClick={() => onBorrow(item.id)}>
-                Demander
-              </button>
-            )}
           </div>
         </div>
       )}

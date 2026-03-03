@@ -2,10 +2,13 @@ import { useState, useEffect } from "react";
 import InventoryItem from "../components/inventory/InventoryItem";
 import { useRole } from "../context/RoleContext";
 import { nhost } from "../lib/nhost";
+import { useNavigate } from "react-router-dom";
 
 function Inventory() {
   const { role } = useRole();
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);  // will be filled from the database
+  const [documentedComponentIds, setDocumentedComponentIds] = useState(new Set());
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("__all__");
   const [currentPage, setCurrentPage] = useState(1);
@@ -132,10 +135,14 @@ function Inventory() {
                 location
                 image
               }
+              documentation(where: {component_id: {_is_null: false}}, distinct_on: component_id) {
+                component_id
+              }
             }
           `
         });
         setItems(res.body.data.components || []);
+        setDocumentedComponentIds(new Set((res.body.data.documentation || []).map((doc) => doc.component_id)));
       } catch (err) {
         console.error("Erreur fetching components:", err);
       }
@@ -415,6 +422,8 @@ function Inventory() {
             onBorrow={handleBorrow}
             onUpdate={handleUpdate}
             onDelete={handleDelete}
+            hasDocumentation={documentedComponentIds.has(item.id)}
+            onOpenDocumentation={() => navigate(`/documentation/${item.slug}`)}
             categories={categoryOptions}
             locations={locationOptions}
           />
