@@ -7,6 +7,7 @@ function Inventory() {
   const { role } = useRole();
   const [items, setItems] = useState([]);  // will be filled from the database
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("__all__");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [showAdd, setShowAdd] = useState(false);
@@ -199,14 +200,19 @@ function Inventory() {
     }
   };
 
-  // prepare filtered list based on search term (match name, reference or category)
+  // prepare filtered list based on category and search term
   const displayed = items.filter(item => {
+    const category = (item.category || "").trim();
+    if (selectedCategory !== "__all__" && category !== selectedCategory) {
+      return false;
+    }
+
     const term = search.trim().toLowerCase();
     if (!term) return true;
     return (
       item.name.toLowerCase().includes(term) ||
       (item.reference || "").toLowerCase().includes(term) ||
-      item.category.toLowerCase().includes(term)
+      category.toLowerCase().includes(term)
     );
   });
 
@@ -364,6 +370,22 @@ function Inventory() {
               setCurrentPage(1);
             }}
           />
+          <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            Catégorie:
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{ padding: "0.35rem" }}
+            >
+              <option value="__all__">Toutes</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </label>
           <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
             Par page:
             <select
