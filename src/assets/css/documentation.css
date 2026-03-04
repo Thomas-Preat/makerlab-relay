@@ -102,3 +102,25 @@
   padding: 0.8rem 1rem;
   margin: 1rem 0;
 }
+
+.doc-sidebar-link,
+.doc-sidebar-link:any-link,
+.doc-sidebar-link:visited {
+  color: #ffffff !important;
+  text-decoration: none;
+}
+
+.doc-sidebar-link:hover,
+.doc-sidebar-link:focus-visible {
+  color: #8ad1ff !important;
+  text-decoration: none;
+}
+
+.doc-sidebar-link-active,
+.doc-sidebar-link-active:any-link,
+.doc-sidebar-link-active:visited,
+.doc-sidebar-link-active:hover,
+.doc-sidebar-link-active:focus-visible {
+  color: #4ea8de !important;
+  text-decoration: none;
+}

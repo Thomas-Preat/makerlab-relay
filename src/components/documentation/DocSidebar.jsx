@@ -221,8 +221,8 @@ function DocSidebar() {
             <div key={doc.slug} style={{ marginBottom: "0.3rem", display: "flex", gap: "0.4rem", alignItems: "center" }}>
               <Link
                 to={`/documentation/${doc.slug}`}
+                className={isActive ? "doc-sidebar-link doc-sidebar-link-active" : "doc-sidebar-link"}
                 style={{
-                  color: isActive ? "#4ea8de" : "white",
                   textDecoration: "none",
                   fontWeight: isActive ? "bold" : "normal",
                   flex: 1,
@@ -509,8 +509,8 @@ function DocSidebar() {
                       <div key={comp.id} style={{ marginBottom: "0.3rem" }}>
                         <Link
                           to={`/documentation/${comp.slug}`}
+                          className={isActive ? "doc-sidebar-link doc-sidebar-link-active" : "doc-sidebar-link"}
                           style={{
-                            color: isActive ? "#4ea8de" : "white",
                             textDecoration: "none",
                             fontWeight: isActive ? "bold" : "normal",
                           }}
