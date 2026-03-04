@@ -1,42 +1,44 @@
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useRole } from "../../context/RoleContext";
 
 function Navbar() {
   const { user, logout } = useRole();
   const navigate = useNavigate();
+  const navClassName = ({ isActive }) =>
+    isActive ? "app-navbar-link app-navbar-link-active" : "app-navbar-link";
 
   return (
-    <nav style={{ padding: "1rem", background: "#222", color: "white", display: "flex", alignItems: "center" }}>
-      <Link to="/" style={{ marginRight: "1rem", color: "white" }}>
+    <nav className="app-navbar">
+      <NavLink to="/" end className={navClassName}>
         Dashboard
-      </Link>
-      <Link to="/inventory" style={{ marginRight: "1rem", color: "white" }}>
+      </NavLink>
+      <NavLink to="/inventory" className={navClassName}>
         Inventaire
-      </Link>
-      <Link to="/orders" style={{ color: "white" }}>
+      </NavLink>
+      <NavLink to="/orders" className={navClassName}>
         Commandes
-      </Link>
-      <Link to="/documentation" style={{ marginLeft: "1rem", color: "white" }}>
+      </NavLink>
+      <NavLink to="/documentation" className={navClassName}>
         Documentation
-      </Link>
-      <Link to="/testnhost" style={{ marginLeft: "1rem", color: "white" }}>
+      </NavLink>
+      <NavLink to="/testnhost" className={navClassName}>
         Test Nhost
-      </Link>
-      <div style={{ marginLeft: "auto" }}>
+      </NavLink>
+      <div className="app-navbar-auth">
         {user ? (
           <button
             onClick={async () => {
               await logout();
               navigate("/");
             }}
-            style={{ background: "#e04e4e", border: "none", padding: "0.4rem 0.8rem", borderRadius: 4, cursor: "pointer", color: "white" }}
+            className="app-navbar-btn app-navbar-btn-logout"
           >
             Déconnexion
           </button>
         ) : (
           <button
             onClick={() => navigate("/login")}
-            style={{ background: "#4ea8de", border: "none", padding: "0.4rem 0.8rem", borderRadius: 4, cursor: "pointer", color: "white" }}
+            className="app-navbar-btn app-navbar-btn-login"
           >
             Login prof
           </button>

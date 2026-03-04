@@ -109,3 +109,76 @@
     border: none;
 }
 
+.app-navbar {
+    padding: 0 1rem;
+    background: #222;
+    color: white;
+    display: flex;
+    align-items: center;
+    min-height: 64px;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.app-navbar-link,
+.app-navbar-link:any-link,
+.app-navbar-link:visited {
+    color: #ffffff !important;
+    text-decoration: none;
+    padding: 0 0.85rem;
+    border-radius: 0;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    display: flex;
+    align-self: stretch;
+    align-items: center;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.app-navbar-link:hover,
+.app-navbar-link:focus-visible {
+    background: var(--accent);
+    color: #ffffff !important;
+    text-decoration: none;
+}
+
+.app-navbar-link-active,
+.app-navbar-link-active:visited,
+.app-navbar-link-active:hover,
+.app-navbar-link-active:focus-visible {
+    background: var(--accent);
+    border-bottom-color: #ffffff;
+    color: #ffffff !important;
+    text-decoration: none;
+}
+
+.app-navbar-link[aria-current="page"],
+.app-navbar-link[aria-current="page"]:visited,
+.app-navbar-link[aria-current="page"]:hover,
+.app-navbar-link[aria-current="page"]:focus-visible {
+    background: var(--accent);
+    border-bottom-color: #ffffff;
+    color: #ffffff !important;
+    text-decoration: none;
+}
+
+.app-navbar-auth {
+    margin-left: auto;
+}
+
+.app-navbar-btn {
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+}
+
+.app-navbar-btn-logout {
+    background: #e04e4e;
+}
+
+.app-navbar-btn-login {
+    background: #4ea8de;
+}
+

@@ -3,4 +3,7 @@
   --bg: #170b1a;         /* main background color */
   --accent: #482653;    /* accent color */
   --accent-transparent: #261a2bf9; /* accent color with transparency */
+  --link: #22d3ee;
+  --link-hover: #67e8f9;
+  --link-visited: #facc15;
 }
