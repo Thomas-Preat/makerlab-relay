@@ -118,41 +118,44 @@ function Inventory() {
     }
   };
 
+  const fetchItems = async () => {
+    try {
+      const res = await nhost.graphql.request({
+        query: `
+          query {
+            components(order_by: { name: asc }) {
+              id
+              name
+              reference
+              slug
+              category
+              quantity
+              location
+              image
+            }
+            documentation(where: {component_id: {_is_null: false}}, distinct_on: component_id) {
+              component_id
+            }
+          }
+        `
+      });
+      setItems(res.body.data.components || []);
+      setDocumentedComponentIds(new Set((res.body.data.documentation || []).map((doc) => doc.component_id)));
+    } catch (err) {
+      console.error("Erreur fetching components:", err);
+    }
+  };
+
   // fetch inventory items from Hasura on mount
   useEffect(() => {
-    async function fetchItems() {
-      try {
-        const res = await nhost.graphql.request({
-          query: `
-            query {
-              components(order_by: { name: asc }) {
-                id
-                name
-                reference
-                slug
-                category
-                quantity
-                location
-                image
-              }
-              documentation(where: {component_id: {_is_null: false}}, distinct_on: component_id) {
-                component_id
-              }
-            }
-          `
-        });
-        setItems(res.body.data.components || []);
-        setDocumentedComponentIds(new Set((res.body.data.documentation || []).map((doc) => doc.component_id)));
-      } catch (err) {
-        console.error("Erreur fetching components:", err);
-      }
-    }
     fetchItems();
   }, []);
 
-  // helper to slugify a string (simple)
+  // helper to slugify a string (supports accents)
   const slugify = (str) =>
     str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, "-")
@@ -171,10 +174,16 @@ function Inventory() {
       }
       qtyValue = qty;
     }
+    const computedSlug = slugify(newItem.name);
+    if (!computedSlug) {
+      alert("Le nom du composant ne permet pas de générer un lien valide.");
+      return;
+    }
+
     const itemToInsert = {
       ...newItem,
       quantity: qtyValue,
-      slug: slugify(newItem.name) || Date.now().toString()
+      slug: computedSlug
     };
     try {
       const res = await nhost.graphql.request({

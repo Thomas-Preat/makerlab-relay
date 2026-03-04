@@ -1,8 +1,28 @@
 // src/components/documentation/DocSidebar.jsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { nhost } from "../../lib/nhost";
 import { useRole } from "../../context/RoleContext";
+
+const slugify = (value) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const buildUniqueSlug = (baseSlug, usedSlugs) => {
+  if (!usedSlugs.has(baseSlug)) return baseSlug;
+  let suffix = 2;
+  let candidate = `${baseSlug}-${suffix}`;
+  while (usedSlugs.has(candidate)) {
+    suffix += 1;
+    candidate = `${baseSlug}-${suffix}`;
+  }
+  return candidate;
+};
 
 function DocSidebar() {
   const { role } = useRole();
@@ -50,7 +70,49 @@ function DocSidebar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const fetchSidebarData = async () => {
+  const migrateFreeDocSlugs = useCallback(async (freeDocsList) => {
+    const slugMap = new Map();
+    const usedSlugs = new Set(freeDocsList.map((doc) => doc.slug));
+
+    freeDocsList.forEach((doc) => {
+      if (!doc?.slug || !doc?.title || slugMap.has(doc.slug)) return;
+
+      const normalizedBaseSlug = slugify(doc.title);
+      if (!normalizedBaseSlug || normalizedBaseSlug === doc.slug) return;
+
+      usedSlugs.delete(doc.slug);
+      const nextSlug = buildUniqueSlug(normalizedBaseSlug, usedSlugs);
+      usedSlugs.add(nextSlug);
+      slugMap.set(doc.slug, nextSlug);
+    });
+
+    if (!slugMap.size) return false;
+
+    for (const [oldSlug, newSlug] of slugMap.entries()) {
+      await nhost.graphql.request({
+        query: `
+          mutation UpdateFreeDocSlug($oldSlug: String!, $newSlug: String!) {
+            update_documentation(
+              where: {
+                _and: [
+                  { slug: { _eq: $oldSlug } }
+                  { component_id: { _is_null: true } }
+                ]
+              }
+              _set: { slug: $newSlug }
+            ) {
+              affected_rows
+            }
+          }
+        `,
+        variables: { oldSlug, newSlug },
+      });
+    }
+
+    return true;
+  }, []);
+
+  const fetchSidebarData = useCallback(async (allowMigration = true) => {
     try {
       const res = await nhost.graphql.request({
         query: `
@@ -80,6 +142,14 @@ function DocSidebar() {
       const compsWithoutDoc = allComponents.filter((comp) => !ids.has(comp.id));
       const free = res.body.data.documentation_free || [];
 
+      if (canEdit && allowMigration) {
+        const hasMigrated = await migrateFreeDocSlugs(free);
+        if (hasMigrated) {
+          await fetchSidebarData(false);
+          return;
+        }
+      }
+
       setComponents(allComponents);
       setDocumentedIds(ids);
       setFreeDocs(free);
@@ -87,11 +157,11 @@ function DocSidebar() {
     } catch (err) {
       console.error("Erreur fetching sidebar documentation:", err);
     }
-  };
+  }, [canEdit, migrateFreeDocSlugs]);
 
   useEffect(() => {
     fetchSidebarData();
-  }, []);
+  }, [fetchSidebarData]);
 
   const toggleFolder = (title) => {
     setOpenFolders((prev) => ({ ...prev, [title]: !prev[title] }));
@@ -101,11 +171,7 @@ function DocSidebar() {
     if (!freeDocTitle.trim()) return;
 
     try {
-      const slug = freeDocTitle
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
+      const slug = slugify(freeDocTitle);
 
       await nhost.graphql.request({
         query: `

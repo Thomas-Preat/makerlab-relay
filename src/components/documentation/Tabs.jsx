@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm"; // tables, strikethrough, task lists, etc.
 
-function Tabs({ tabs = {}, onSave, canEdit = false, onAddType, onDeleteType, onRenameType, newTypeName = "", onNewTypeNameChange }) {
+function Tabs({ tabs = {}, onSave, canEdit = false, onAddType, onDeleteType, onRenameType, onMoveType, newTypeName = "", onNewTypeNameChange }) {
   const tabKeys = Object.keys(tabs || {}); // array of types
   const [activeTab, setActiveTab] = useState(tabKeys[0] || "");
   const [editing, setEditing] = useState(false);
@@ -69,7 +69,7 @@ function Tabs({ tabs = {}, onSave, canEdit = false, onAddType, onDeleteType, onR
       {/* Display tabs only if more than one */}
       {!hasSingleTab && (
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          {tabKeys.map((type) => (
+          {tabKeys.map((type, index) => (
             <div key={type} style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
               <button
                 onClick={() => setActiveTab(type)}
@@ -85,6 +85,38 @@ function Tabs({ tabs = {}, onSave, canEdit = false, onAddType, onDeleteType, onR
               </button>
               {canEdit && (
                 <>
+                  <button
+                    onClick={() => onMoveType && onMoveType(type, "up")}
+                    disabled={index === 0}
+                    style={{
+                      padding: "0.3rem 0.45rem",
+                      background: index === 0 ? "#555" : "#444",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "3px",
+                      cursor: index === 0 ? "not-allowed" : "pointer",
+                      fontSize: "0.85rem",
+                    }}
+                    title="Monter cet onglet"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => onMoveType && onMoveType(type, "down")}
+                    disabled={index === tabKeys.length - 1}
+                    style={{
+                      padding: "0.3rem 0.45rem",
+                      background: index === tabKeys.length - 1 ? "#555" : "#444",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "3px",
+                      cursor: index === tabKeys.length - 1 ? "not-allowed" : "pointer",
+                      fontSize: "0.85rem",
+                    }}
+                    title="Descendre cet onglet"
+                  >
+                    ↓
+                  </button>
                   <button
                     onClick={() => requestRename(type)}
                     style={{

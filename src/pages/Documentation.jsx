@@ -5,6 +5,21 @@ import { nhost } from "../lib/nhost";
 import Tabs from "../components/documentation/Tabs"; // shared component
 import { useRole } from "../context/RoleContext";
 
+const typeDefaultOrder = {
+  explication: 1,
+  schema: 2,
+  "schéma": 2,
+  librairie: 3,
+};
+
+const resolveDocOrder = (doc, index) => {
+  const numericPosition = Number(doc.position);
+  if (Number.isFinite(numericPosition) && numericPosition > 0) return numericPosition;
+  const fallback = typeDefaultOrder[(doc.type || "").toLowerCase()];
+  if (fallback) return fallback;
+  return 100 + index;
+};
+
 export default function Documentation() {
   const { slug } = useParams();
   const { role } = useRole();
@@ -36,13 +51,18 @@ export default function Documentation() {
                 component_id
                 type
                 content
+                position
               }
             }
           `,
           variables: { slug },
         });
 
-        const docs = res.body.data.documentation || [];
+        const docs = [...(res.body.data.documentation || [])].sort((a, b) => {
+          const aOrder = resolveDocOrder(a, 0);
+          const bOrder = resolveDocOrder(b, 0);
+          return aOrder - bOrder;
+        });
         if (docs.length === 0) {
           setDocTitle("");
           setComponentId(null);
@@ -153,13 +173,14 @@ export default function Documentation() {
 
     try {
       const query = `
-        mutation InsertDoc($slug: String!, $type: String!, $content: String!, $component_id: uuid, $title: String) {
+        mutation InsertDoc($slug: String!, $type: String!, $content: String!, $component_id: uuid, $title: String, $position: String) {
           insert_documentation_one(object: {
             slug: $slug
             type: $type
             content: $content
             component_id: $component_id
             title: $title
+            position: $position
           }) { 
             id 
           }
@@ -173,6 +194,7 @@ export default function Documentation() {
           content: "",
           component_id: componentId,
           title: docTitle,
+          position: String(Object.keys(tabs).length + 1),
         },
       });
       const newId = res.body.data.insert_documentation_one.id;
@@ -187,6 +209,50 @@ export default function Documentation() {
   const handleDeleteType = async (type) => {
     if (!docIds[type]) return;
     setDeleteConfirmType(type); // Affiche le modal de confirmation
+  };
+
+  const handleMoveType = async (type, direction) => {
+    const tabOrder = Object.keys(tabs);
+    const currentIndex = tabOrder.indexOf(type);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= tabOrder.length) return;
+
+    const nextOrder = [...tabOrder];
+    [nextOrder[currentIndex], nextOrder[targetIndex]] = [
+      nextOrder[targetIndex],
+      nextOrder[currentIndex],
+    ];
+
+    setTabs((prev) => {
+      const reordered = {};
+      nextOrder.forEach((currentType) => {
+        reordered[currentType] = prev[currentType] ?? "";
+      });
+      return reordered;
+    });
+
+    try {
+      await Promise.all(
+        nextOrder.map((currentType, index) => {
+          const id = docIds[currentType];
+          if (!id) return Promise.resolve();
+          return nhost.graphql.request({
+            query: `
+              mutation UpdateDocPosition($id: uuid!, $position: String!) {
+                update_documentation_by_pk(pk_columns: {id: $id}, _set: {position: $position}) {
+                  id
+                }
+              }
+            `,
+            variables: { id, position: String(index + 1) },
+          });
+        })
+      );
+    } catch (err) {
+      console.error("Erreur lors de la réorganisation des onglets:", err);
+    }
   };
 
   const handleRenameType = async (currentType, nextTypeRaw) => {
@@ -335,6 +401,7 @@ export default function Documentation() {
               onAddType={canEdit ? handleAddType : null}
               onDeleteType={canEdit ? handleDeleteType : null}
               onRenameType={canEdit ? handleRenameType : null}
+              onMoveType={canEdit ? handleMoveType : null}
               newTypeName={newTypeName}
               onNewTypeNameChange={setNewTypeName}
             />
