@@ -2,7 +2,88 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm"; // tables, strikethrough, task lists, etc.
 
-function Tabs({ tabs = {}, onSave, canEdit = false, onAddType, onDeleteType, onRenameType, onMoveType, newTypeName = "", onNewTypeNameChange }) {
+const sanitizeBaseName = (rawName) => {
+  const fallback = "snippet";
+  if (!rawName || typeof rawName !== "string") return fallback;
+
+  const normalized = rawName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || fallback;
+};
+
+function MarkdownCodeBlock({ className, children, downloadBaseName, ...props }) {
+  const [copyState, setCopyState] = useState("idle");
+  const match = /language-(\w+)/.exec(className || "");
+  const language = (match?.[1] || "text").toLowerCase();
+  const rawCode = String(children || "").replace(/\n$/, "");
+  const canDownloadPython = language === "python" || language === "py";
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(rawCode);
+      setCopyState("copied");
+      window.setTimeout(() => setCopyState("idle"), 1400);
+    } catch (_err) {
+      setCopyState("failed");
+      window.setTimeout(() => setCopyState("idle"), 1400);
+    }
+  };
+
+  const handleDownload = () => {
+    const baseName = sanitizeBaseName(downloadBaseName || document.title || "python-snippet");
+    const fileName = `${baseName}.py`;
+    const blob = new Blob([rawCode], { type: "text/x-python;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="doc-code-block">
+      <div className="doc-code-toolbar">
+        <span className="doc-code-language">{language}</span>
+        <div className="doc-code-actions">
+          <button type="button" className="doc-code-btn" onClick={handleCopy}>
+            {copyState === "copied" ? "Copie" : copyState === "failed" ? "Erreur" : "Copier"}
+          </button>
+          {canDownloadPython && (
+            <button type="button" className="doc-code-btn" onClick={handleDownload}>
+              Telecharger .py
+            </button>
+          )}
+        </div>
+      </div>
+      <pre>
+        <code className={className} {...props}>
+          {rawCode}
+        </code>
+      </pre>
+    </div>
+  );
+}
+
+function MarkdownPre({ children, downloadBaseName }) {
+  const codeChild = Array.isArray(children) ? children[0] : children;
+  const codeProps = codeChild?.props || {};
+
+  return (
+    <MarkdownCodeBlock className={codeProps.className} downloadBaseName={downloadBaseName}>
+      {codeProps.children}
+    </MarkdownCodeBlock>
+  );
+}
+
+function Tabs({ tabs = {}, onSave, canEdit = false, onAddType, onDeleteType, onRenameType, onMoveType, newTypeName = "", onNewTypeNameChange, downloadBaseName = "" }) {
   const tabKeys = Object.keys(tabs || {}); // array of types
   const [activeTab, setActiveTab] = useState(tabKeys[0] || "");
   const [editing, setEditing] = useState(false);
@@ -235,7 +316,23 @@ function Tabs({ tabs = {}, onSave, canEdit = false, onAddType, onDeleteType, onR
 
       {/* Active content display */}
       <div style={{ border: "1px solid #ddd", padding: "1rem", borderRadius: "4px" }}>
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{tabs[activeTab]}</ReactMarkdown>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            code({ inline, className, children, ...props }) {
+              return (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              );
+            },
+            pre({ children }) {
+              return <MarkdownPre downloadBaseName={downloadBaseName}>{children}</MarkdownPre>;
+            },
+          }}
+        >
+          {tabs[activeTab]}
+        </ReactMarkdown>
       </div>
 
       {renameSourceType && (

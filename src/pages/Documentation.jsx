@@ -404,6 +404,7 @@ export default function Documentation() {
               onMoveType={canEdit ? handleMoveType : null}
               newTypeName={newTypeName}
               onNewTypeNameChange={setNewTypeName}
+              downloadBaseName={slug}
             />
           ) : (
             <p>Pas encore de documentation ici.</p>
